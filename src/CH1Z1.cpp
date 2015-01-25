@@ -72,7 +72,7 @@ char* CH1Z1::GetItemName()
 	return itemName;
 }
 
-std::string CalculateWordlCompassHeading()
+std::string CH1Z1::CalculateWorldCompassHeading()
 {
 	std::string auxHead;
 	float playerHeading = 0.f;
@@ -103,4 +103,52 @@ std::string CalculateWordlCompassHeading()
 	}
 
 	return auxHead;
+}
+
+bool CH1Z1::WorldToScreen(const CVector3& World, CVector3& Out)
+{
+	/*
+	DWORD_PTR Graphics = *(DWORD_PTR*)(0x142CD83A8);
+	DWORD_PTR Camera = *(DWORD_PTR*)(Graphics + 0x48);
+	DWORD_PTR CameraMatrix = *(DWORD_PTR*)(Camera + 0x20);
+
+	CameraMatrix += 0x10;
+
+	D3DXMATRIX Matrix = *(D3DXMATRIX*)(CameraMatrix + 0x1A0);
+
+	int ScreenWidth = *(int*)(Graphics + 0x28);
+	int ScreenHeight = *(int*)(Graphics + 0x2C);
+
+	D3DXMatrixTranspose(&Matrix, &Matrix);
+
+	Matrix._21 *= -1;
+	Matrix._22 *= -1;
+	Matrix._23 *= -1;
+	Matrix._24 *= -1;
+
+	float w = GetMatrixAxis(Matrix, 3).Dot(World) + Matrix.m[3][3];
+
+	if (w < 0.098)
+		return false;
+
+	float x = GetMatrixAxis(Matrix, 0).Dot(World) + Matrix.m[0][3];
+	float y = GetMatrixAxis(Matrix, 1).Dot(World) + Matrix.m[1][3];
+
+	Out.fX = (ScreenWidth / 2) * (1.0 + x / w);
+	Out.fY = (ScreenHeight / 2) * (1.0 - y / w);
+	*/
+	return true;
+}
+
+CVector3 CH1Z1::GetEntityDirection(DWORD64 entity)
+{
+	float fx = static_cast<float>(*(DWORD64 *)entity + 0x1F0);
+	float fy = static_cast<float>(*(DWORD64 *)entity + 0x1F4);
+
+	CVector3 r;
+	r.fX = sinf(fx) * cosf(fy);
+	r.fY = sin(fy);
+	r.fZ = cosf(fy) * cosf(fx);
+
+	return r;
 }

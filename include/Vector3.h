@@ -60,6 +60,13 @@ public:
 #pragma warning(pop)
 	}
 
+	float Dot(CVector3 world)
+	{
+		return (fX * world.fX +
+			fY * world.fY +
+			fZ * world.fZ);
+	}
+
 	CVector3 operator+ (const CVector3& vecRight) const
 	{
 		return CVector3(fX + vecRight.fX, fY + vecRight.fY, fZ + vecRight.fZ);

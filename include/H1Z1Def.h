@@ -33,7 +33,7 @@ namespace H1Z1Def
 	{
 		enum class v033134511 : UINT64
 		{
-#pragma message("!--> USE PATTERN - NO STATIC FUNCS!")
+#pragma message("!--> USE PATTERN - NO STATIC OFFSETS!")
 			// General game funcs
 			cGame = 0x142CB5EA8,
 			cGraphic = 0x142CB5C08,
@@ -56,44 +56,83 @@ namespace H1Z1Def
 
 	enum class EntityTypes : UINT8
 	{
-		Player = 4,
-		Zombie0 = 12,
-		OffRoad = 17,
-		Deer = 19,
-		Wolf = 20,
-		Food = 21,
-		Armoire = 23,
-		FileCabinet = 25,
-		CampFire = 27,
-		Cabinets1 = 29,
-		Cabinets2 = 30,
-		Cabinets3 = 35,
-		Cabinets = 40,
-		ToolCabinet = 49,
-		Misc = 44,
-		PungiSticks = 46,
-		StorageContainer = 51,
-		Weapons = 52,
-		AnimalTrap = 53,
-		PungiSticks2 = 56,
-		WaterWell = 62,
-		Dressers = 64,
-		Wreck0 = 68,
-		Wreck1 = 69,
-		Wreck2 = 70,
-		Shed = 76,
-		Door2 = 79,
-		Bear = 80,
-		Barbeque = 83,
-		Rabbit = 85,
-		Raven = 89,
-		Zombie1 = 91,
-		Shed1 = 94,
-		Door = 98,
-		PickupTruck = 114,
-		PoliceCar = 118,
-		Door1 = 121,
-		SleepingBag = 122
+		TYPE_Player = 4,
+		TYPE_Zombie = 91,
+		TYPE_Zombie2 = 12,
+
+		// Lootables
+		TYPE_Dresser = 22,
+		TYPE_Armoire = 23,
+		TYPE_FileCabinet = 25,
+		TYPE_WreckedSedan = 68,
+		TYPE_GarbageCan = 38,
+		TYPE_Dumpster = 39,
+		TYPE_Cabinets = 34,
+		TYPE_Cabinets2 = 40,
+		TYPE_Cabinets3 = 130,
+		TYPE_WreckedTruck = 70,
+		TYPE_WreckedVan = 69,
+		TYPE_Refrigirator = 37,
+		TYPE_MilitaryCache = 147,
+		TYPE_ToolCabinet = 49,
+		TYPE_Desk = 25,
+		TYPE_StorageContainer = 51,
+		TYPE_Chest = 66,
+		TYPE_LootCache = 127,
+		TYPE_Locker = 111,
+		TYPE_WeaponsLocker = 112,
+
+		TYPE_WoodenBarricade = 61,
+
+		TYPE_Deer = 19,
+		TYPE_Wolf = 20,
+		TYPE_Bear = 80,
+		TYPE_Rabbit = 85,
+		TYPE_Raven = 89,
+
+		TYPE_Food = 21,
+
+		TYPE_GroundTamper = 95,
+
+		TYPE_Furance = 47,
+		TYPE_CampFire = 27,
+		TYPE_Barbeque = 83,
+		TYPE_DewCollector = 54,
+		TYPE_FireDrum = 55,
+
+		// Airdrop leftovers or quest caches?
+		TYPE_TheMedic_Cache = 152,
+		TYPE_TheLoneWolf_Cache = 150,
+		TYPE_TheBuilder_Cache = 155,
+		TYPE_TheFarmer_Cache = 155,
+
+		TYPE_Trap = 53,
+		TYPE_AggressiveItems = 56, // punji sticks, barbed wire
+
+		TYPE_Shed_Wood = 76, // wood
+		TYPE_LargeShelter = 95,
+		TYPE_Shed_Metal = 94, // metal
+		TYPE_BasicShackDoor = 98,
+		TYPE_Stash = 109,
+
+		TYPE_Bed = 122,
+		TYPE_Misc = 44, // Seems to be a major group like cloths, bandages
+		TYPE_Loot = 46,
+
+		TYPE_Door = 25,
+		TYPE_Door2 = 124,
+		TYPE_Door3 = 121,
+		TYPE_FireHydrant = 125,
+
+		TYPE_OffRoader = 17,
+		TYPE_PickupTruck = 114,
+		TYPE_PoliceCar = 118,
+
+		TYPE_308_ROUND = 134,
+
+		TYPE_Flare = 45,
+
+		TYPE_HandWeapons = 52,
 	};
 
 	class CObject                                
