@@ -20,38 +20,22 @@ misrepresented as being the original software.
 \*****************************************************************************/
 #pragma once
 
+#include <include/D3Draw.h>
+
 #include <Windows.h>
-#include <include/Common.h>
-#include <include/Vector3.h>
+#include <iostream>
 
-class CH1Z1
-{
-private:
-	static CH1Z1*	_instance;
+#include <d3d9.h>
+#include <d3dx9.h>
 
-	DWORD_PTR player;
-	DWORD_PTR game;
-	CVector3 playerPos;
+#include <dwmapi.h>
+#pragma comment(lib, "dwmapi.lib")
 
-	HANDLE proc;
+extern IDirect3D9Ex* p_Object;
+extern IDirect3DDevice9Ex* p_Device;
+extern D3DPRESENT_PARAMETERS p_Params;
+extern ID3DXLine* p_Line;
+extern ID3DXFont* pFontSmall;
 
-public:
-	CH1Z1(HANDLE proc);
-	~CH1Z1();
-
-	CH1Z1*	GetInstance(HANDLE hProc = NULL) { if(_instance == nullptr) { _instance = new CH1Z1(hProc); } return _instance; };
-
-	void ParseEntities();
-	void Process();
-	char* GetItemName();
-
-	CVector3 GetEntityDirection(DWORD64 entity);
-	bool WorldToScreen(const CVector3& World, CVector3& Out);
-
-	std::string CalculateWorldCompassHeading();
-
-	/*D3DXVECTOR3& GetMatrixAxis(D3DXMATRIX matrix, UINT i)
-	{
-		return *(D3DXVECTOR3*)&matrix.m[i][0];
-	}*/
-};
+int DirectXInit(HWND hWnd);
+int Render();

@@ -30,8 +30,8 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	if (!proc)
 		return;
 
-	ReadProcessMemory(this->proc, (void*)(H1Z1_DEF_LATEST::cGame), &game, sizeof(DWORD64), NULL);
-	ReadProcessMemory(this->proc, (void*)(game + 0x11D8), &player, sizeof(DWORD64), NULL);
+	ReadProcessMemory(this->proc, (void*)(0x142CB5EA8), &game, sizeof(DWORD64), NULL);
+	ReadProcessMemory(this->proc, (void*)(game + STATIC_CAST(H1Z1_DEF_LATEST::PlayerOffset)), &player, sizeof(DWORD64), NULL);
 	ReadProcessMemory(this->proc, (void*)(player + STATIC_CAST(H1Z1_DEF_LATEST::PlayerPositionOffset)), &playerPos, sizeof(CVector3), NULL);
 
 	auto test = GetItemName();
@@ -44,7 +44,7 @@ CH1Z1::~CH1Z1()
 
 void CH1Z1::ParseEntities()
 {
-	INT64 addr = reinterpret_cast<INT64>(player);
+	INT64 addr = player;
 	while (*(INT64*)(addr + STATIC_CAST(H1Z1_DEF_LATEST::_EntityTableOffset)))
 	{
 		H1Z1Def::CObject * obj = *(H1Z1Def::CObject**)(addr + STATIC_CAST(H1Z1_DEF_LATEST::_EntityTableOffset));

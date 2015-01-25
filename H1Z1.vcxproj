@@ -104,8 +104,10 @@
       <AdditionalIncludeDirectories>../;../../;../../../;$(SolutionDir);C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>d3dx9.lib;d3d9.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%DXSDK_DIR%/Lib/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -144,13 +146,18 @@
     <ClInclude Include="include/targetver.h" />
     <ClInclude Include="include\CH1Z1.h" />
     <ClInclude Include="include\Common.h" />
+    <ClInclude Include="include\D3Draw.h" />
     <ClInclude Include="include\D3Keys.h" />
+    <ClInclude Include="include\D3Overlay.h" />
     <ClInclude Include="include\H1Z1Def.h" />
+    <ClInclude Include="include\main.h" />
     <ClInclude Include="include\Vector3.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src/main.cpp" />
     <ClCompile Include="src\CH1Z1.cpp" />
+    <ClCompile Include="src\D3Draw.cpp" />
+    <ClCompile Include="src\D3Overlay.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
