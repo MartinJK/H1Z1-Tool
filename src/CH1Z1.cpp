@@ -35,6 +35,7 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	ReadProcessMemory(this->proc, (void*)(game + STATIC_CAST(H1Z1_DEF_LATEST::PlayerOffset)), &player, sizeof(DWORD64), NULL);
 	ReadProcessMemory(this->proc, (void*)(player + STATIC_CAST(H1Z1_DEF_LATEST::PlayerPositionOffset)), &playerPos, sizeof(CVector3), NULL);
 
+	// seems to be the player name
 	auto test = GetItemName();
 }
 
@@ -45,12 +46,30 @@ CH1Z1::~CH1Z1()
 
 void CH1Z1::ParseEntities()
 {
+	int iOffset = 100;
+
 	INT64 addr = player;
-	while (*(INT64*)(addr + STATIC_CAST(H1Z1_DEF_LATEST::_EntityTableOffset)))
+	__debugbreak(); // check this addr as we've get 0xC5 access violation here
+	// Rewrite this shit to ReadProcessMemory as we're not injected into the game executable anymore....
+
+	INT64 _temp;
+	ReadProcessMemory(this->proc, (INT64*)(addr + STATIC_CAST(H1Z1_DEF_LATEST::EntityTableOffset)), &_temp, sizeof(INT64), NULL);
+
+	while (_temp)
 	{
 		H1Z1Def::CObject * obj = *(H1Z1Def::CObject**)(addr + STATIC_CAST(H1Z1_DEF_LATEST::_EntityTableOffset));
 			
 		// Entity Found
+		{
+			char szString[512] = { 0 };
+			
+			CVector3 entityPos(obj->pos.x, obj->pos.y, obj->pos.z);
+			float fDinstance = (playerPos - entityPos).Length();
+			sprintf_s(szString, "Entity: type[%d], pos[%.2f, %.2f, %.2f], distance[%.2f]", obj->type, obj->pos.x, obj->pos.y, obj->pos.z, fDinstance);
+			iOffset += 15;
+
+			DrawString(szString, 15, iOffset, 240, 240, 250, pFontSmaller);
+		}
 
 		addr = (INT64)obj;
 	}
@@ -59,11 +78,74 @@ void CH1Z1::ParseEntities()
 
 void CH1Z1::Process()
 {
-	ReadProcessMemory(this->proc, (void*)(player + STATIC_CAST(H1Z1_DEF_LATEST::PlayerPositionOffset)), &playerPos, sizeof(CVector3), NULL);
+	// Global over scrope reachable needed:
+	float fHeading = 0.f;
 
-	char szString[512] = { 0 };
-	sprintf_s(szString, "World Position: %2.f, %2.f, %2.f", playerPos.fX, playerPos.fY, playerPos.fZ);
-	DrawString(szString, 15, 50, 240, 240, 250, pFontSmaller);
+	{
+		ReadProcessMemory(this->proc, (void*)(player + STATIC_CAST(H1Z1_DEF_LATEST::PlayerPositionOffset)), &playerPos, sizeof(CVector3), NULL);
+
+		char szString[512] = { 0 };
+		sprintf_s(szString, "World Position: %.2f, %.2f, %.2f", playerPos.fX, playerPos.fY, playerPos.fZ);
+		DrawString(szString, 15, 50, 240, 240, 250, pFontSmaller);
+	}
+
+	{
+		ReadProcessMemory(this->proc, (void*)(player + STATIC_CAST(H1Z1_DEF_LATEST::PlayerHeadingOffset)), &fHeading, sizeof(float), NULL);
+		
+		auto compass = this->CalculateWorldCompassHeading(fHeading);
+		char szString[512] = { 0 };
+		sprintf_s(szString, "Heading to %s [%.2f]", compass.c_str(), fHeading);
+		DrawString(szString, 15, 65, 240, 240, 250, pFontSmaller);
+	}
+
+	{
+		// Do not read the playerPos again as we've already read the position this frame
+		CVector3 PleasentValley = CVector3(0, 0, -1200);
+		
+		float fRange = (PleasentValley - playerPos).Length();
+
+		char szString[512] = { 0 };
+		sprintf_s(szString, "Distance to Pleasent Valley: %.1f", fRange);
+		DrawString(szString, 15, 80, 240, 240, 250, pFontSmaller);
+	}
+
+	{
+		// Minimap
+		RECT desktop;
+		const HWND hDesktop = GetDesktopWindow();
+		GetWindowRect(hDesktop, &desktop);
+
+		auto fWidth = 200;
+		auto fHeight = 200;
+		auto fX = (desktop.right - 20 -fWidth);
+		auto fY = (desktop.bottom - 75);
+
+		//DrawHealthBarBack(fX, fY, fWidth, fHeight);
+
+		FillRGB(fX, fY - (fHeight / 2), fWidth, 1, 240, 240, 250, 255);
+		FillRGB(fX + (fWidth / 2), fY-fHeight, 1, fHeight, 240, 240, 250, 255);
+
+		// Border of map
+		// Horicontal
+		FillRGB(fX, fY - fHeight, 1, fHeight, 240, 240, 250, 255);
+		FillRGB(fX+fWidth, fY - fHeight, 1, fHeight, 240, 240, 250, 255);
+
+		// Vertical
+		FillRGB(fX, fY - fHeight, fWidth, 1, 240, 240, 250, 255);
+		FillRGB(fX, fY, fWidth, 1, 240, 240, 250, 255);
+
+		// Draw local player pixel
+		FillRGB((fX + (fWidth / 2)-1), (fY - (fHeight / 2)-1), 4, 4, 255, 0, 0, 255);
+
+		// Draw heading line
+		if(fHeading > 0)
+			FillRGB((fX + (fWidth / 2) - 1), (fY - (fHeight / 2) - 1), fHeading*15, fHeading*15, 255, 0, 0, 255);
+		/*else
+			FillRGB(fX, (fY - fHeight), fHeading * 15, fHeading * 15, 255, 0, 0, 255);*/
+	}
+
+	// Prase entities(objects)
+	//this->ParseEntities();
 }
 
 char* CH1Z1::GetItemName()
@@ -77,11 +159,9 @@ char* CH1Z1::GetItemName()
 	return itemName;
 }
 
-std::string CH1Z1::CalculateWorldCompassHeading()
+std::string CH1Z1::CalculateWorldCompassHeading(float playerHeading)
 {
 	std::string auxHead;
-	float playerHeading = 0.f;
-
 	if (playerHeading < 1.9625 && playerHeading > 1.1775) {
 		auxHead = "N";
 	}

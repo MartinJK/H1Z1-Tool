@@ -47,8 +47,9 @@ namespace H1Z1Def
 
 			// Player
 			PlayerOffset = 0x11D8,
-			PlayerPositionOffset = 0x1D0,
-			PlayerHeadingOffset = 0x1F0,
+			PlayerPositionOffset = 0x1D0, // Vector3
+			PlayerHeadingOffset = 0x1F0, // float
+			PlayerPitchOffset = 0x1F4, // float
 
 			PlayerWorldState = 0x0028, // BYTE - 1(on foot) - 2(in vehicle)
 		};

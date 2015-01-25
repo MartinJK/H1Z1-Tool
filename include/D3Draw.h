@@ -40,5 +40,39 @@ void DrawGUIBox(float x, float y, float w, float h, int r, int g, int b, int a, 
 void DrawHealthBar(float x, float y, float w, float h, int r, int g);
 void DrawHealthBarBack(float x, float y, float w, float h);
 
+void GenerateTextures(IDirect3DTexture9 ** pTexture, DWORD dwColour);
+void DrawPixel(float fX, float fY, unsigned long ulColor);
+void DrawLine(float fStartX, float fStartY, float fEndX, float fEndY, unsigned long ulColor);
+void DrawRect(float fX, float fY, float fWidth, float fHeight, unsigned long ulColor);
+void DrawBox(float fLeft, float fTop, float fWidth, float fHeight, DWORD dwColour);
+
+
 int DrawString(char* String, int x, int y, int r, int g, int b, ID3DXFont* ifont);
 int DrawShadowString(char* String, int x, int y, int r, int g, int b, ID3DXFont* ifont);
+
+struct D3DVERTEX
+{
+	float fX;
+	float fY;
+	float fZ;
+	float fRHW;
+	DWORD dwColor;
+
+	D3DVERTEX()
+	{
+		fX = 0.0f;
+		fY = 0.0f;
+		fZ = 0.0f;
+		fRHW = 1.0f;
+		dwColor = 0;
+	}
+
+	D3DVERTEX(float _fX, float _fY, float _fZ, float _fRHW, DWORD _dwColor)
+	{
+		fX = _fX;
+		fY = _fY;
+		fZ = _fZ;
+		fRHW = _fRHW;
+		dwColor = _dwColor;
+	}
+};

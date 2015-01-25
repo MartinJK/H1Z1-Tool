@@ -48,7 +48,7 @@ public:
 	CVector3 GetEntityDirection(DWORD64 entity);
 	bool WorldToScreen(const CVector3& World, CVector3& Out);
 
-	std::string CalculateWorldCompassHeading();
+	std::string CalculateWorldCompassHeading(float playerHeading);
 
 	/*D3DXVECTOR3& GetMatrixAxis(D3DXMATRIX matrix, UINT i)
 	{

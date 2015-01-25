@@ -69,17 +69,10 @@ int Present_Begin()
 	p_Device->Clear(0, 0, D3DCLEAR_TARGET, 0, 1.0f, 0);
 	p_Device->BeginScene();
 
-	if (0 == 0)//tWnd == GetForegroundWindow())
+	if (tWnd == GetForegroundWindow())
 	{
-		//text without shadow
 		DrawString("H1Z1 Tool", 15, 15, 240, 240, 250, pFontSmall);
 
-		//colored rects
-		//FillRGB(30, 40, 10, 10, 255, 0, 0, 155);
-		//FillRGB(30, 60, 10, 10, 0, 255, 0, 155);
-		//FillRGB(30, 80, 10, 10, 0, 0, 255, 155);
-
-		//crosshair
 		FillRGB(width / 2 - 11, height / 2, 22, 1, 240, 240, 250, 255);
 		FillRGB(width / 2, height / 2 - 11, 1, 22, 240, 240, 250, 255);
 	}

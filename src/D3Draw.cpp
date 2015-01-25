@@ -145,3 +145,91 @@ void DrawCenterLine(float x, float y, int width, int height, int r, int g, int b
 	p_Line->SetWidth(width);
 	p_Line->Draw(dPoints, 2, D3DCOLOR_RGBA(r, g, b, 255));
 }
+
+void GenerateTextures(IDirect3DTexture9 ** pTexture, DWORD dwColour)
+{
+	// Create the texture
+	p_Device->CreateTexture(8, 8, 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, pTexture, NULL);
+
+	// Generate the colour
+	WORD colour16 = ((WORD)((dwColour >> 28) & 0xF) << 12) |
+		(WORD)(((dwColour >> 20) & 0xF) << 8) |
+		(WORD)(((dwColour >> 12) & 0xF) << 4) |
+		(WORD)(((dwColour >> 4) & 0xF) << 0);
+
+	D3DLOCKED_RECT lockedRect;
+	(*pTexture)->LockRect(0, &lockedRect, 0, 0);
+
+	WORD *pDst16 = (WORD*)lockedRect.pBits;
+	for (int xy = 0; xy < 8 * 8; xy++)
+		*pDst16++ = colour16;
+	(*pTexture)->UnlockRect(0);
+}
+
+void DrawPixel(float fX, float fY, unsigned long ulColor)
+{
+	D3DVERTEX vertex(fX, fY, 0.0f, 1.0f, ulColor);
+
+	p_Device->SetTexture(0, NULL);
+	p_Device->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
+	p_Device->DrawPrimitiveUP(D3DPT_POINTLIST, 1, &vertex, sizeof(D3DVERTEX));
+}
+
+void DrawLine(float fStartX, float fStartY, float fEndX, float fEndY, unsigned long ulColor)
+{
+	D3DVERTEX vertex[2];
+	vertex[0] = D3DVERTEX(fStartX, fStartY, 0.0f, 1.0f, ulColor);
+	vertex[1] = D3DVERTEX(fEndX, fEndY, 0.0f, 1.0f, ulColor);
+
+	p_Device->SetTexture(0, NULL);
+	p_Device->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
+	p_Device->DrawPrimitiveUP(D3DPT_LINELIST, 1, &vertex[0], sizeof(D3DVERTEX));
+}
+
+void DrawRect(float fX, float fY, float fWidth, float fHeight, unsigned long ulColor)
+{
+	D3DVERTEX vertex[4];
+	vertex[0] = D3DVERTEX(fX, fY, 0.0f, 1.0f, ulColor);
+	vertex[1] = D3DVERTEX((fX + fWidth), fY, 0.0f, 1.0f, ulColor);
+	vertex[2] = D3DVERTEX((fX + fWidth), (fY + fHeight), 0.0f, 1.0f, ulColor);
+	vertex[3] = D3DVERTEX(fX, (fY + fHeight), 0.0f, 1.0f, ulColor);
+	short indices[6] = { 0,1,2,0,2,3 };
+
+	p_Device->SetTexture(0, NULL);
+	p_Device->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
+	p_Device->DrawIndexedPrimitiveUP(D3DPT_TRIANGLELIST, 0, 4, 2, &indices[0], D3DFMT_INDEX16, &vertex[0], sizeof(D3DVERTEX));
+}
+
+IDirect3DTexture9* texture;
+class CVertexList
+{
+public:
+	FLOAT x, y, z, rhw;
+	DWORD dwColor;
+};
+void DrawBox(float fLeft, float fTop, float fWidth, float fHeight, DWORD dwColour)
+{
+	GenerateTextures(&texture, dwColour);
+
+	CVertexList qV[4];
+
+	qV[0].dwColor = qV[1].dwColor = qV[2].dwColor = qV[3].dwColor = dwColour;
+	qV[0].z = qV[1].z = qV[2].z = qV[3].z = 0.0f;
+	qV[0].rhw = qV[1].rhw = qV[2].rhw = qV[3].rhw = 0.0f;
+
+	qV[0].x = fLeft;
+	qV[0].y = (fTop + fHeight);
+	qV[1].x = fLeft;
+	qV[1].y = fTop;
+	qV[2].x = (fLeft + fWidth);
+	qV[2].y = (fTop + fHeight);
+	qV[3].x = (fLeft + fWidth);
+	qV[3].y = fTop;
+
+	const DWORD D3DFVF_TL = D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1;
+	p_Device->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
+	p_Device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+	p_Device->SetFVF(D3DFVF_TL);
+	p_Device->SetTexture(0, texture);
+	p_Device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, qV, sizeof(CVertexList));
+}
