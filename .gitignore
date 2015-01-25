@@ -31,4 +31,5 @@
 *.sdf
 *.suo
 *.filters
+*.opensdf
 build/
