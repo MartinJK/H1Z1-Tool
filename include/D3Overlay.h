@@ -36,6 +36,8 @@ extern IDirect3DDevice9Ex* p_Device;
 extern D3DPRESENT_PARAMETERS p_Params;
 extern ID3DXLine* p_Line;
 extern ID3DXFont* pFontSmall;
+extern ID3DXFont* pFontSmaller;
 
 int DirectXInit(HWND hWnd);
-int Render();
+int Present_Begin();
+int Present_End();

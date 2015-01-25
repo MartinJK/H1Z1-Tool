@@ -37,6 +37,8 @@ RECT tSize;
 HWND hWnd;
 HWND tWnd;
 
+CH1Z1* H1Z1 = nullptr;
+
 bool EnableDebugPrivilege() 
 { 
     HANDLE hThis = GetCurrentProcess(); 
@@ -77,20 +79,29 @@ LRESULT CALLBACK WinProc(HWND _hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 {
 	switch (Message)
 	{
-	case WM_PAINT:
-		Render();
-		break;
+		case WM_PAINT:
+		{
+			// Check if we're forced to stop!
+			if(Present_Begin())
+				break;
 
-	case WM_CREATE:
-		DwmExtendFrameIntoClientArea(_hWnd, &margin);
-		break;
+			H1Z1->Process();
 
-	case WM_DESTROY:
-		__debugbreak();
-		return 0;
+			Present_End();
 
-	default:
-		return DefWindowProc(_hWnd, Message, wParam, lParam);
+			break;
+		}
+
+		case WM_CREATE:
+			DwmExtendFrameIntoClientArea(_hWnd, &margin);
+			break;
+
+		case WM_DESTROY:
+			__debugbreak();
+			return 0;
+
+		default:
+			return DefWindowProc(_hWnd, Message, wParam, lParam);
 		break;
 	}
 	return 0;
@@ -170,7 +181,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	MSG Message;
-	CH1Z1 h1Z1(proc);
+	H1Z1 = new CH1Z1(proc);
 
 	DirectXInit(hWnd);
 	for (;;)
@@ -185,9 +196,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		GetWindowText(window, windowText, 100);
 		TCharToChar(windowText, AnsiBuffer, sizeof(AnsiBuffer));
 		destPtr = (const char *)AnsiBuffer;
-
-		if (strcpy_s(AnsiBuffer, H1Z1_WINDOW))
-			h1Z1.Process();
 	}
 	return 0;
 }

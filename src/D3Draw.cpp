@@ -18,6 +18,9 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 \*****************************************************************************/
+// Main subroutines are written by "Grab" - http://www.unknowncheats.me/forum/member171703.html
+// Original Overlay: http://www.unknowncheats.me/forum/downloads.php?do=file&id=10166
+
 #include <include/D3Draw.h>
 
 #pragma warning(push)

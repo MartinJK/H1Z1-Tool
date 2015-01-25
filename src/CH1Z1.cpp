@@ -21,6 +21,7 @@ misrepresented as being the original software.
 #include <include/CH1Z1.h>
 #include <include/D3Keys.h>
 #include <include/H1Z1Def.h>
+#include <include/D3Draw.h>
 
 CH1Z1* CH1Z1::_instance = nullptr;
 
@@ -58,7 +59,11 @@ void CH1Z1::ParseEntities()
 
 void CH1Z1::Process()
 {
-	
+	ReadProcessMemory(this->proc, (void*)(player + STATIC_CAST(H1Z1_DEF_LATEST::PlayerPositionOffset)), &playerPos, sizeof(CVector3), NULL);
+
+	char szString[512] = { 0 };
+	sprintf_s(szString, "World Position: %2.f, %2.f, %2.f", playerPos.fX, playerPos.fY, playerPos.fZ);
+	DrawString(szString, 15, 50, 240, 240, 250, pFontSmaller);
 }
 
 char* CH1Z1::GetItemName()

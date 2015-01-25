@@ -18,6 +18,9 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 \*****************************************************************************/
+// Main subroutines are written by "Grab" - http://www.unknowncheats.me/forum/member171703.html
+// Original Overlay: http://www.unknowncheats.me/forum/downloads.php?do=file&id=10166
+
 #include <include/main.h>
 
 IDirect3D9Ex* p_Object = 0;
@@ -26,11 +29,12 @@ D3DPRESENT_PARAMETERS p_Params;
 
 ID3DXLine* p_Line;
 ID3DXFont* pFontSmall = 0;
+ID3DXFont* pFontSmaller = 0;
 
 // Imports from main.cpp
 extern int width;
 extern int height;
-extern HWND thWnd;
+extern HWND tWnd;
 
 int DirectXInit(HWND hWnd)
 {
@@ -55,16 +59,17 @@ int DirectXInit(HWND hWnd)
 		D3DXCreateLine(p_Device, &p_Line);
 
 	D3DXCreateFont(p_Device, 18, 0, 0, 0, false, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH, L"Arial", &pFontSmall);
+	D3DXCreateFont(p_Device, 13, 0, 0, 0, false, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH, L"Arial", &pFontSmaller);
 
 	return 0;
 }
 
-int Render()
+int Present_Begin()
 {
 	p_Device->Clear(0, 0, D3DCLEAR_TARGET, 0, 1.0f, 0);
 	p_Device->BeginScene();
 
-	if (0 == 0)//thWnd == GetForegroundWindow())
+	if (0 == 0)//tWnd == GetForegroundWindow())
 	{
 		//text without shadow
 		DrawString("H1Z1 Tool", 15, 15, 240, 240, 250, pFontSmall);
@@ -78,7 +83,17 @@ int Render()
 		FillRGB(width / 2 - 11, height / 2, 22, 1, 240, 240, 250, 255);
 		FillRGB(width / 2, height / 2 - 11, 1, 22, 240, 240, 250, 255);
 	}
+	else
+	{
+		Present_End(); // Stop processing this frame to
+		return 1;
+	}
 
+	return 0;
+}
+
+int Present_End()
+{
 	p_Device->EndScene();
 	p_Device->PresentEx(0, 0, 0, 0, 0);
 	return 0;
