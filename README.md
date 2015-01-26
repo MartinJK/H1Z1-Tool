@@ -8,6 +8,7 @@ H1Z1 Map / Tool modification
 
 ## H1Z1Tool includes the following features
 ```
+- General DirectX9 external overlay
 - World Position
 - Heading including a compass
 - Distance to Pleasent Valley
@@ -21,9 +22,13 @@ H1Z1 Map / Tool modification
 - Zombie/Player attention/warning if they have focused you/are attacking you
 - Automatic computed direction runner(relax & lay back while the game runs to your direction itself)
 - World items & entity (3D) to 2D screen conversion
-- Other player loot ability
+- Other player loot ability & preview (see what loot other players have)
 - Timers to show you when you have to eat/drink again
 - Vehicle stability improvements(including physics)
+
+## H1Z1Tool is using following methods (at the moment)
+- RPM (ReadProcessMemory)
+- DirectX9 / WIN32 overlay creation
 
 ## Development Ideas
 ```
