@@ -23,10 +23,6 @@ misrepresented as being the original software.
 #include <include/H1Z1Def.h>
 
 HANDLE proc;
-char AnsiBuffer[255];
-const char* destPtr = (const char *)AnsiBuffer;
-HWND window = NULL;
-TCHAR windowText[100];
 
 const MARGINS margin = { 0, 0, 1920, 1080 };
 int width = 1920;
@@ -97,7 +93,6 @@ LRESULT CALLBACK WinProc(HWND _hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case WM_DESTROY:
-			__debugbreak();
 			return 0;
 
 		default:
@@ -107,38 +102,38 @@ LRESULT CALLBACK WinProc(HWND _hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-void SetWindowToTarget()
-{
-	for (;;)
-	{
-		tWnd = FindWindow(0, TEXT(H1Z1_WINDOW));
-		if (tWnd)
-		{
-			GetWindowRect(tWnd, &tSize);
-			width = tSize.right - tSize.left;
-			height = tSize.bottom - tSize.top;
-			DWORD dwStyle = GetWindowLong(tWnd, GWL_STYLE);
-			if (dwStyle & WS_BORDER)
-			{
-				tSize.top += 23;
-				height -= 23;
-			}
-			MoveWindow(hWnd, tSize.left, tSize.top, width, height, true);
-		}
-		else
-		{
-			MessageBoxA(NULL, "#2 Failed to find process with H1Z1!", (H1Z1_VERSION), MB_OK | MB_ICONASTERISK);
-			exit(0);
-		}
-
-		std::this_thread::sleep_for(50ms); // 100ms? performance?
-	}
-}
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    //EnableDebugPrivilege();
-	CreateThread(0, 0, (LPTHREAD_START_ROUTINE)SetWindowToTarget, 0, 0, 0);
+    EnableDebugPrivilege();
+
+	// Create automatic re-move thread
+	std::thread td([&] {
+		for (;;)
+		{
+			tWnd = FindWindow(0, TEXT(H1Z1_WINDOW));
+			if (tWnd)
+			{
+				GetWindowRect(tWnd, &tSize);
+				width = tSize.right - tSize.left;
+				height = tSize.bottom - tSize.top;
+				DWORD dwStyle = GetWindowLong(tWnd, GWL_STYLE);
+				if (dwStyle & WS_BORDER)
+				{
+					tSize.top += 23;
+					height -= 23;
+				}
+				MoveWindow(hWnd, tSize.left, tSize.top, width, height, true);
+			}
+			else
+			{
+				MessageBoxA(NULL, "Failed to find process with H1Z1! Terminating H1Z1 Tool!", (H1Z1_VERSION), MB_OK | MB_ICONERROR);
+				exit(0);
+			}
+
+			std::this_thread::sleep_for(50ms); // 100ms? performance?
+		}
+	});
+	td.detach();
 
 	WNDCLASSEX wClass;
 	wClass.cbClsExtra = NULL;
@@ -176,13 +171,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	
 	if (!proc)
 	{
-		MessageBoxA(NULL, "#1 Failed to find process with H1Z1!", (H1Z1_VERSION), MB_OK | MB_ICONASTERISK);
+		MessageBoxA(NULL, "Failed to find process with H1Z1! Cannot lauch H1Z1 Tool!", (H1Z1_VERSION), MB_OK | MB_ICONERROR);
 		exit(0);
 	}
 
 	MSG Message;
 	DirectXInit(hWnd);
 	H1Z1 = new CH1Z1(proc);
+
 	for (;;)
 	{
 		if (PeekMessage(&Message, hWnd, 0, 0, PM_REMOVE))
@@ -190,11 +186,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			DispatchMessage(&Message);
 			TranslateMessage(&Message);
 		}
-
-		window = GetForegroundWindow();
-		GetWindowText(window, windowText, 100);
-		TCharToChar(windowText, AnsiBuffer, sizeof(AnsiBuffer));
-		destPtr = (const char *)AnsiBuffer;
 	}
+
 	return 0;
 }

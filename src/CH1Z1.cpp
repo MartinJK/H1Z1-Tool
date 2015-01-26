@@ -30,24 +30,25 @@ D3DXVECTOR3& GetMatrixAxis(D3DXMATRIX matrix, UINT i)
 }
 
 CH1Z1::CH1Z1(HANDLE proc) : 
-	proc(proc)
+	hH1Z1(proc)
 {
 	if (!proc)
 		return;
 
 	// Create basic ptr's
-	ReadProcessMemory(this->proc, (void*)(H1Z1_DEF_LATEST::cGame), &game, sizeof(DWORD64), NULL);
-	ReadProcessMemory(this->proc, (void*)(game + STATIC_CAST(H1Z1_DEF_LATEST::PlayerOffset)), &player, sizeof(DWORD64), NULL);
-	ReadProcessMemory(this->proc, (void*)(player + STATIC_CAST(H1Z1_DEF_LATEST::PlayerPositionOffset)), &playerPos, sizeof(CVector3), NULL);
-	
+	ReadH1Z1(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CGame), &this->CGame, sizeof(DWORD64), NULL);
+	ReadH1Z1(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CGraphic), &this->CGraphics, sizeof(DWORD64), NULL);
+
+	ReadH1Z1(this->hH1Z1, (void*)(CGame + STATIC_CAST(H1Z1_DEF_LATEST::LocalPlayerOffset)), &this->LocalPlayer, sizeof(DWORD64), NULL);
+	ReadH1Z1(this->hH1Z1, (void*)(CPlayer + STATIC_CAST(H1Z1_DEF_LATEST::CPlayerOffset_Position)), &this->vecPlayerPos, sizeof(CVector3), NULL);
+
 	// Create player heading line
-	D3DXCreateLine(p_Device, &this->line);
-	this->line->SetWidth(2);
-	this->line->SetPattern(0xffffffff);
+	D3DXCreateLine(p_Device, &this->dxLine);
+	this->dxLine->SetWidth(2);
+	this->dxLine->SetPattern(0xffffffff);
+	D3DXCreateSprite(p_Device, &dxSprite);
 
-	// Create fullscreen map
-	D3DXCreateSprite(p_Device, &sprite);
-
+	// Load & generate map texture
 	wchar_t szExePath[MAX_PATH] = { 0 };
 	GetModuleFileNameW(GetModuleHandle(NULL), szExePath, MAX_PATH);
 
@@ -64,19 +65,30 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	std::wstring loc = szExePath;
 	loc.append(L"map.png");
 
-	D3DXCreateTextureFromFile(p_Device, loc.c_str(), &texture);
+	D3DXCreateTextureFromFile(p_Device, loc.c_str(), &dxTexture);
+
+	ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenWidth)), &this->_screenWidth, sizeof(this->_screenWidth), NULL);
+	ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenHeight)), &this->_screenHeight, sizeof(this->_screenHeight), NULL);
 }
 
 CH1Z1::~CH1Z1()
 {
-	texture->Release();
-	line->Release();
-	sprite->Release();
-	p_Device->Release();
+	if(dxTexture)
+		dxTexture->Release();
+	
+	if(dxLine)
+		dxLine->Release();
+	
+	if(dxSprite)
+		dxSprite->Release();
+
+	if(p_Device)
+		p_Device->Release();
 }
 
 void CH1Z1::ParseEntities()
 {
+#if _DEBUG_ITEMS
 	DrawString("Entities nearby(300m)", 15, 120, 240, 240, 250, pFontSmall);
 	DrawString("Players nearby(300m)", 515, 120, 240, 240, 250, pFontSmall);
 	DrawString("Objects nearby(300m)", 915, 120, 240, 240, 250, pFontSmall);
@@ -84,34 +96,29 @@ void CH1Z1::ParseEntities()
 	int entityOffset = 150;
 	int playerOffset = 150;
 	int objectOffset = 150;
+#endif
 	int warningOffset = 15;
 
-	DWORD SizeOfEntity = 0;
-	ReadProcessMemory(this->proc, (void*)(game + 0x1020), &SizeOfEntity, sizeof(SizeOfEntity), NULL);
+	DWORD entityCount;
+	ReadH1Z1(this->hH1Z1, (void*)(this->CGame + STATIC_CAST(H1Z1_DEF_LATEST::EntityPoolCount)), &entityCount, sizeof(DWORD), NULL);
 
-	uint16 _temp = 0;
-	DWORD_PTR _obj;
-	DWORD64 _ptr;
-	
 	// Set the current object to localplayer so we parse every entity
-	_obj = player;
+	DWORD_PTR _obj = this->LocalPlayer;
+	DWORD_PTR _namePtr;
 
 	// Now parse all
-	while (_temp < SizeOfEntity/*-1? so the localplayer will be extracted from the entity list?*/)
+	for (uint16 entity = 0; entity < entityCount-1; entity++)
 	{
 		// Read entity from memory
-		ReadProcessMemory(this->proc, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::_EntityTableOffset)), &_obj, sizeof(DWORD64), NULL);
+		ReadH1Z1(this->hH1Z1, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::EntityTableOffset)), &_obj, sizeof(DWORD64), NULL);
 
-		// Generate new entity/object
+		// Generate new entity/object for this iteration/loop
 		H1Z1Def::CObject scopeobj;
 
-		// Set the iteration to the next entity
-		_temp += 1;
-
-		ReadProcessMemory(proc, (void*)(_obj + 0x3B8), &_ptr, sizeof(DWORD64), NULL);
-		ReadProcessMemory(proc, (void*)(_ptr), &scopeobj._name, sizeof(scopeobj._name), NULL);
-		ReadProcessMemory(proc, (void*)(_obj + 0x1D0), &scopeobj._position, sizeof(CVector3), NULL);
-		ReadProcessMemory(proc, (void*)(_obj + 0x500), &scopeobj._type, sizeof(int32), NULL);
+		ReadH1Z1(this->hH1Z1, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Name)), &_namePtr, sizeof(DWORD64), NULL);
+		ReadH1Z1(this->hH1Z1, (void*)(_namePtr), &scopeobj._name, sizeof(scopeobj._name), NULL);
+		ReadH1Z1(this->hH1Z1, (void*)(_obj + +STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Position)), &scopeobj._position, sizeof(CVector3), NULL);
+		ReadH1Z1(this->hH1Z1, (void*)(_obj + +STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Type)), &scopeobj._type, sizeof(int32), NULL);
 
 		// Ignore game designer placed stuff
 		// Also disable empty strings and punji sticks/ wire and wood arrows
@@ -125,48 +132,33 @@ void CH1Z1::ParseEntities()
 			|| scopeobj._type == 44 /*wood arrow*/)
 			continue;
 
-		// Entity Found
-		if (scopeobj._type < 255 && scopeobj._type >= 0)
+		// Check if the entity type is in a valid range
+		if (scopeobj._type < static_cast<int32>(H1Z1_DEF_LATEST::MAX_ENTITY_TYPE) && scopeobj._type >= 0)
 		{
 			char szString[256];
-			float fDinstance = (playerPos - scopeobj._position).Length();
 
-			sprintf_s(szString, "- %s type[%d], pos[%.2f, %.2f, %.2f], distance[%.2f]",
-				scopeobj._name,
-				scopeobj._type,
-				scopeobj._position.fX,
-				scopeobj._position.fY,
-				scopeobj._position.fZ,
-				fDinstance);
-
-			// Draw it to the item list (left)
+			float fDistance = (vecPlayerPos - scopeobj._position).Length();
 
 			// Do not draw zombies to the entity list, just add a warning if they're close!
 			if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie
 				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Wolf
 				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie2)
 			{
-				if (fDinstance < 20.f) 
+#if _ATTACK_ALERT
+				if (fDistance < 20.f)
 				{
-					DWORD_PTR Graphics;
-					ReadProcessMemory(this->proc, (void*)(H1Z1_DEF_LATEST::cGraphic), &Graphics, sizeof(DWORD64), NULL);
+					RECT desktop = this->GetDesktop();
 
-					RECT desktop;
-					const HWND hDesktop = GetDesktopWindow();
-					GetWindowRect(hDesktop, &desktop);
+					char szMessage[128];
+					sprintf_s(szMessage, "!Attention: There\'s a %s close to you!", scopeobj._name);
 
-					int ScreenWidth = 0;
-					ReadProcessMemory(this->proc, (void*)(Graphics + 0x28), &ScreenWidth, sizeof(ScreenWidth), NULL);
-
-					char szMessage[512];
-					sprintf_s(szMessage, "Attention! There\'s a %s close to you!", scopeobj._name);
-
-					DrawString(szMessage, desktop.right-(ScreenWidth/2)-150, warningOffset, 255, 0, 0, pFontSmall);
+					DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 255, 0, 0, pFontSmall);
 
 					warningOffset += 15;
 
 					// Draw the zombie in 3D so the player will see him
 					CVector3 _vecScreen;
+					scopeobj._position.fY += this->CalculateEntity3DModelOffset(scopeobj._type);
 					bool bResult = this->WorldToScreen(scopeobj._position, _vecScreen);
 					if (bResult)
 					{
@@ -174,29 +166,64 @@ void CH1Z1::ParseEntities()
 
 						DrawString(szString, _vecScreen.fX, _vecScreen.fY, 255, 50, 50, pFontSmall);
 					}
-
 				}
+#endif
 				continue;
 			}
 
-			// Sort out types
+#if  _ATTACK_NEAR_PLAYER_ALERT
 			if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Player)
-				scopeobj._isPlayer = true;
-
-			if (scopeobj._position.fX == 0.f
-				&& scopeobj._position.fY == 0.f
-				&& scopeobj._position.fZ == 0.f && !scopeobj._isPlayer)
 			{
-				// Grab the original position
-				ReadProcessMemory(proc, (void*)(_obj + 0x1330), &scopeobj._objectPosition, sizeof(CVector3), NULL);
-				fDinstance = (playerPos - scopeobj._objectPosition).Length();
+				if (fDistance < 80.f)
+				{
+					_IGNORE_PLAYERS
+					{
+						RECT desktop = this->GetDesktop();
 
-				scopeobj._isObject = true;
+						char szMessage[128];
+						sprintf_s(szMessage, "!Attention: Player %s is close to you!", scopeobj._name);
+
+						DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 255, 0, 0, pFontSmall);
+
+						warningOffset += 15;
+
+						// Draw the zombie in 3D so the player will see him
+						CVector3 _vecScreen;
+						scopeobj._position.fY += this->CalculateEntity3DModelOffset(scopeobj._type);
+						bool bResult = this->WorldToScreen(scopeobj._position, _vecScreen);
+						if (bResult)
+						{
+							sprintf_s(szString, ">> !%s! <<", scopeobj._name);
+
+							DrawString(szString, _vecScreen.fX, _vecScreen.fY, 255, 50, 50, pFontSmall);
+						}
+					}
+				}
+			}
+#endif
+
+			// Sort out types
+			{
+				if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Player)
+					scopeobj._isPlayer = true;
+
+				if (scopeobj._position.fX == 0.f
+					&& scopeobj._position.fY == 0.f
+					&& scopeobj._position.fZ == 0.f
+					&& !scopeobj._isPlayer)
+				{
+					// Grab the original position
+					ReadH1Z1(this->hH1Z1, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::CEntityObjectOffset_Position)), &scopeobj._objectPosition, sizeof(CVector3), NULL);
+					fDistance = (this->vecPlayerPos - scopeobj._objectPosition).Length();
+
+					scopeobj._isObject = true;
+				}
+
+				if (!scopeobj._isPlayer && !scopeobj._isObject)
+					scopeobj._isEntity = true;
 			}
 
-			if (!scopeobj._isPlayer && !scopeobj._isObject)
-				scopeobj._isEntity = true;
-
+#if _DEBUG_ITEMS
 			// Draw to list
 			if (scopeobj._isObject)
 			{
@@ -206,7 +233,7 @@ void CH1Z1::ParseEntities()
 					scopeobj._objectPosition.fX,
 					scopeobj._objectPosition.fY,
 					scopeobj._objectPosition.fZ,
-					fDinstance);
+					fDistance);
 
 				DrawString(szString, 915, objectOffset, 240, 240, 250, pFontSmaller);
 				objectOffset += 15;
@@ -219,7 +246,7 @@ void CH1Z1::ParseEntities()
 					scopeobj._position.fX,
 					scopeobj._position.fY,
 					scopeobj._position.fZ,
-					fDinstance);
+					fDistance);
 
 				DrawString(szString, 515, playerOffset, 240, 240, 250, pFontSmaller);
 				playerOffset += 15;
@@ -233,52 +260,51 @@ void CH1Z1::ParseEntities()
 					scopeobj._position.fX,
 					scopeobj._position.fY,
 					scopeobj._position.fZ,
-					fDinstance);
+					fDistance);
 
 				DrawString(szString, 15, entityOffset, 240, 240, 250, pFontSmaller);
 				entityOffset += 15;
 			}
+#endif
 
-
+#if _3D_ENTITY_DISPLAY
 			// Check if he's a player so we draw a big text with a hint
-			if (!scopeobj._isObject)
+			if (!scopeobj._isObject) // player & entities
 			{
 				// Draw it on the screen(World 2 Screen)
 				CVector3 _vecScreen;
-				bool bResult = this->WorldToScreen(scopeobj._position, _vecScreen);
+				scopeobj._position.fY += this->CalculateEntity3DModelOffset(scopeobj._type);
+				bool bIsOnScreen = this->WorldToScreen(scopeobj._position, _vecScreen);
 				
-				if (bResult)
+				if (bIsOnScreen)
 				{
 					if (scopeobj._isPlayer)
-					{
-						sprintf_s(szString, "Player: %s  (%2.fm)", scopeobj._name, fDinstance);
-						DrawString(szString, _vecScreen.fX, _vecScreen.fY, 240, 240, 250, pFontSmall);
-					}
+						sprintf_s(szString, "Player: %s  (%2.fm)", scopeobj._name, fDistance);
 					else
-					{
-						sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDinstance);
-						DrawString(szString, _vecScreen.fX, _vecScreen.fY, 240, 240, 250, pFontSmaller);
-					}
+						sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDistance);
+
+					DrawString(szString, _vecScreen.fX, _vecScreen.fY, 240, 240, 250, scopeobj._isPlayer ? pFontSmall : pFontSmaller);
 				}
 			}
 			else // objects
 			{
 				// Draw it on the screen(World 2 Screen)
 				CVector3 _vecScreen;
-				bool bResult = this->WorldToScreen(scopeobj._objectPosition, _vecScreen);
+				scopeobj._objectPosition.fY += this->CalculateEntity3DModelOffset(scopeobj._type);
+				bool bIsOnScreen = this->WorldToScreen(scopeobj._objectPosition, _vecScreen);
 
-				if (bResult)
+				if (bIsOnScreen)
 				{
-					sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDinstance);
+					sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDistance);
 					DrawString(szString, _vecScreen.fX, _vecScreen.fY, 240, 240, 250, pFontSmaller);
 				}
 
 			}
+#endif
 
+#if _MINIMAP
 			// Draw to minimap
-			RECT desktop;
-			const HWND hDesktop = GetDesktopWindow();
-			GetWindowRect(hDesktop, &desktop);
+			RECT desktop = GetDesktop();
 
 			auto fWidth = 200;
 			auto fHeight = 200;
@@ -288,14 +314,15 @@ void CH1Z1::ParseEntities()
 			// Check if we're a lootable thing or whatever else
 			CVector3 diff;
 			if (scopeobj._isObject) // Parse objects
-				diff = CVector3(scopeobj._objectPosition.fX - playerPos.fX,
-					scopeobj._objectPosition.fY - playerPos.fY,
-					scopeobj._objectPosition.fZ - playerPos.fZ);
-			else // Parse entities
-				diff = CVector3(scopeobj._position.fX - playerPos.fX,
-					scopeobj._position.fY - playerPos.fY,
-					scopeobj._position.fZ - playerPos.fZ);
+				diff = CVector3(scopeobj._objectPosition.fX - this->vecPlayerPos.fX,
+					scopeobj._objectPosition.fY - this->vecPlayerPos.fY,
+					scopeobj._objectPosition.fZ - this->vecPlayerPos.fZ);
+			else // Parse entities, players etc.
+				diff = CVector3(scopeobj._position.fX - this->vecPlayerPos.fX,
+					scopeobj._position.fY - this->vecPlayerPos.fY,
+					scopeobj._position.fZ - this->vecPlayerPos.fZ);
 
+			// Check if we would be out of the minimap range
 			if (diff.Length() <= 200)
 			{
 				if(diff.fX >= 0)
@@ -317,6 +344,7 @@ void CH1Z1::ParseEntities()
 				else // other entities
 					FillRGB(fX, fY, 4, 4, 0, 255, 0, 255);
 			}
+#endif
 		}
 		else
 			return;
@@ -325,22 +353,22 @@ void CH1Z1::ParseEntities()
 
 void CH1Z1::Process()
 {
-	// Global over scrope reachable needed:
+	// Global over scope reachable needed:
 	float fHeading = 0.f;
 
 	{
-		ReadProcessMemory(this->proc, (void*)(player + STATIC_CAST(H1Z1_DEF_LATEST::PlayerPositionOffset)), &playerPos, sizeof(CVector3), NULL);
+		ReadH1Z1(this->hH1Z1, (void*)(this->LocalPlayer + STATIC_CAST(H1Z1_DEF_LATEST::CPlayerOffset_Position)), &this->vecPlayerPos, sizeof(CVector3), NULL);
 
 		char szString[512] = { 0 };
-		sprintf_s(szString, "World Position: %.2f, %.2f, %.2f", playerPos.fX, playerPos.fY, playerPos.fZ);
+		sprintf_s(szString, "World Position: %.2f, %.2f, %.2f", this->vecPlayerPos.fX, this->vecPlayerPos.fY, this->vecPlayerPos.fZ);
 		DrawString(szString, 15, 50, 240, 240, 250, pFontSmaller);
 	}
 
 	{
-		ReadProcessMemory(this->proc, (void*)(player + STATIC_CAST(H1Z1_DEF_LATEST::PlayerHeadingOffset)), &fHeading, sizeof(float), NULL);
+		ReadH1Z1(this->hH1Z1, (void*)(this->LocalPlayer + STATIC_CAST(H1Z1_DEF_LATEST::CPlayerOffset_Heading)), &fHeading, sizeof(float), NULL);
 		
 		auto compass = this->CalculateWorldCompassHeading(fHeading);
-		char szString[512] = { 0 };
+		char szString[126] = { 0 };
 		sprintf_s(szString, "Heading to %s [%.2f]", compass.c_str(), fHeading);
 		DrawString(szString, 15, 65, 240, 240, 250, pFontSmaller);
 	}
@@ -349,26 +377,29 @@ void CH1Z1::Process()
 		// Do not read the playerPos again as we've already read the position this frame
 		CVector3 PleasentValley = CVector3(0, 0, -1200);
 		
-		float fRange = (PleasentValley - playerPos).Length();
+		float fRange = (PleasentValley - this->vecPlayerPos).Length();
 
 		char szString[512] = { 0 };
-		sprintf_s(szString, "Distance to Pleasent Valley: %.1f", fRange);
+		sprintf_s(szString, "Distance to Pleasant Valley: %.0fm", fRange);
 		DrawString(szString, 15, 80, 240, 240, 250, pFontSmaller);
 	}
 
 	{
+		ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenWidth)), &this->_screenWidth, sizeof(this->_screenWidth), NULL);
+		ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenHeight)), &this->_screenHeight, sizeof(this->_screenHeight), NULL);
+	}
+
+#if _MINIMAP
+	{
 		// Minimap
-		RECT desktop;
-		const HWND hDesktop = GetDesktopWindow();
-		GetWindowRect(hDesktop, &desktop);
+		RECT desktop = this->GetDesktop();
 
 		auto fWidth = 200;
 		auto fHeight = 200;
 		auto fX = (desktop.right - 20 - fWidth);
 		auto fY = (desktop.bottom - 75);
 
-		//DrawHealthBarBack(fX, fY, fWidth, fHeight);
-
+		// Crosshair
 		FillRGB(fX, fY - (fHeight / 2), fWidth, 1, 240, 240, 250, 255);
 		FillRGB(fX + (fWidth / 2), fY-fHeight, 1, fHeight, 240, 240, 250, 255);
 
@@ -397,10 +428,11 @@ void CH1Z1::Process()
 		points[0] = D3DXVECTOR2((fX + (fWidth / 2) - 1), (fY - (fHeight / 2) - 1));
 		points[1] = D3DXVECTOR2(fX + (100 * fHeading) , fY + (100 * fHeading));
 
-		line->Draw(points, 2, 0xffffffff);
+		this->dxLine->Draw(points, 2, 0xffffffff);
 	}
+#endif
 
-	// Prase entities(objects)
+	// Prase entities
 	this->ParseEntities();
 }
 
@@ -410,8 +442,8 @@ void CH1Z1::DrawFullMap()
 	const HWND hDesktop = GetDesktopWindow();
 	GetWindowRect(hDesktop, &desktop);
 
-	// Draw huge fullscreen map
-	sprite->Begin(D3DXSPRITE_ALPHABLEND);
+	// Draw fullscreen map
+	this->dxSprite->Begin(D3DXSPRITE_ALPHABLEND);
 	RECT rc = { (desktop.right / 4) / 2, (desktop.bottom / 4) / 2, (desktop.right / 4) * 3, (desktop.bottom / 4) * 3 };
 	D3DXVECTOR2 spriteCentre = D3DXVECTOR2(32.0f, 32.0f);
 	D3DXVECTOR2 trans = D3DXVECTOR2((desktop.right / 2) - desktop.right / 4, (desktop.bottom / 8));
@@ -419,9 +451,9 @@ void CH1Z1::DrawFullMap()
 	D3DXMATRIX mat;
 	D3DXVECTOR2 scaling(0.4f, 0.4f);
 	D3DXMatrixTransformation2D(&mat, NULL, 0.0, &scaling, &spriteCentre, rotation, &trans);
-	sprite->SetTransform(&mat);
-	sprite->Draw(texture, NULL, NULL, NULL, 0xFFFFFFFF);
-	sprite->End();
+	this->dxSprite->SetTransform(&mat);
+	this->dxSprite->Draw(this->dxTexture, NULL, NULL, NULL, 0xFFFFFFFF);
+	this->dxSprite->End();
 
 	/*
 	// WHOLE WORLD MAP
@@ -451,13 +483,13 @@ void CH1Z1::DrawFullMap()
 	*/
 }
 
-char* CH1Z1::GetItemName(DWORD_PTR ptr)
+char* CH1Z1::GetEntityName(DWORD_PTR ptr)
 {
 	static char itemName[64];
 
 	DWORD64 ItemNamePtr;
-	ReadProcessMemory(proc, (void*)(ptr + 0x3B8), &ItemNamePtr, sizeof(DWORD64), NULL);
-	ReadProcessMemory(proc, (void*)(ItemNamePtr), &itemName, sizeof(itemName), NULL);
+	ReadH1Z1(this->hH1Z1, (void*)(ptr + STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Name)), &ItemNamePtr, sizeof(DWORD64), NULL);
+	ReadH1Z1(this->hH1Z1, (void*)(ItemNamePtr), &itemName, sizeof(itemName), NULL);
 
 	return itemName;
 }
@@ -465,76 +497,62 @@ char* CH1Z1::GetItemName(DWORD_PTR ptr)
 std::string CH1Z1::CalculateWorldCompassHeading(float playerHeading)
 {
 	std::string auxHead;
-	if (playerHeading < 1.9625 && playerHeading > 1.1775) {
+
+	if (playerHeading < 1.9625 && playerHeading > 1.1775)
 		auxHead = "N";
-	}
-	else if (playerHeading < 1.1775 && playerHeading > 0.3925) {
+	else if (playerHeading < 1.1775 && playerHeading > 0.3925)
 		auxHead = "NE";
-	}
-	else if (playerHeading < 0.3925 && playerHeading > -0.3925) {
+	else if (playerHeading < 0.3925 && playerHeading > -0.3925)
 		auxHead = "E";
-	}
-	else if (playerHeading < -0.3925 && playerHeading > -1.1775) {
+	else if (playerHeading < -0.3925 && playerHeading > -1.1775)
 		auxHead = "SE";
-	}
-	else if (playerHeading < -1.1775 && playerHeading > -1.9625) {
+	else if (playerHeading < -1.1775 && playerHeading > -1.9625)
 		auxHead = "S";
-	}
-	else if (playerHeading < -1.9625 && playerHeading > -2.7475) {
+	else if (playerHeading < -1.9625 && playerHeading > -2.7475) 
 		auxHead = "SW";
-	}
-	else if (playerHeading < -2.7475 && playerHeading > -3.14) {
+	else if (playerHeading < -2.7475 && playerHeading > -3.14)
 		auxHead = "W";
-	}
-	else {
+	else 
 		auxHead = "NW";
-	}
 
 	return auxHead;
 }
 
 bool CH1Z1::WorldToScreen(const CVector3& World, CVector3& Out)
 {
-	DWORD_PTR Graphics;
-	DWORD_PTR Camera;
-	DWORD_PTR CameraMatrix;
+	DWORD_PTR CCamera;
+	DWORD_PTR CCameraMatrix;
 
-	ReadProcessMemory(this->proc, (void*)(H1Z1_DEF_LATEST::cGraphic), &Graphics, sizeof(DWORD64), NULL);
-	ReadProcessMemory(this->proc, (void*)(Graphics + 0x48), &Camera, sizeof(DWORD64), NULL);
-	ReadProcessMemory(this->proc, (void*)(Camera + 0x20), &CameraMatrix, sizeof(DWORD64), NULL);
+	ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_Camera)), &CCamera, sizeof(DWORD64), NULL);
+	ReadH1Z1(this->hH1Z1, (void*)(CCamera + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_Camera__Matrix)), &CCameraMatrix, sizeof(DWORD64), NULL);
 
-	CameraMatrix += 0x10;
+	CCameraMatrix += 0x10;
 
-	D3DXMATRIX Matrix;
-	ReadProcessMemory(this->proc, (void*)(CameraMatrix + 0x1A0), &Matrix, sizeof(D3DXMATRIX), NULL);
-	
-	int ScreenWidth = 0;
-	int ScreenHeight = 0;
-	ReadProcessMemory(this->proc, (void*)(Graphics + 0x28), &ScreenWidth, sizeof(ScreenWidth), NULL);
-	ReadProcessMemory(this->proc, (void*)(Graphics + 0x2C), &ScreenHeight, sizeof(ScreenHeight), NULL);
+	D3DXMATRIX d3Matrix;
+	ReadH1Z1(this->hH1Z1, (void*)(CCameraMatrix + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_D3DXMATRIX)), &d3Matrix, sizeof(D3DXMATRIX), NULL);
 
-	D3DXMatrixTranspose(&Matrix, &Matrix);
+	D3DXMatrixTranspose(&d3Matrix, &d3Matrix);
 
-	Matrix._21 *= -1;
-	Matrix._22 *= -1;
-	Matrix._23 *= -1;
-	Matrix._24 *= -1;
+	d3Matrix._21 *= -1;
+	d3Matrix._22 *= -1;
+	d3Matrix._23 *= -1;
+	d3Matrix._24 *= -1;
 
 	// Convert D3Vector3 to CVector3
-	auto _tmp = GetMatrixAxis(Matrix, 3);
-	float w = CVector3(_tmp.x, _tmp.y, _tmp.z).Dot(World) + Matrix.m[3][3];
+	auto _tmp = GetMatrixAxis(d3Matrix, 3);
+	float w = CVector3(_tmp.x, _tmp.y, _tmp.z).Dot(World) + d3Matrix.m[3][3];
 
 	if (w < 0.098)
 		return false;
 
-	_tmp = GetMatrixAxis(Matrix, 0);
-	float x = CVector3(_tmp.x, _tmp.y, _tmp.z).Dot(World) + Matrix.m[0][3];
+	_tmp = GetMatrixAxis(d3Matrix, 0);
+	float x = CVector3(_tmp.x, _tmp.y, _tmp.z).Dot(World) + d3Matrix.m[0][3];
 
-	_tmp = GetMatrixAxis(Matrix, 1);
-	float y = CVector3(_tmp.x, _tmp.y, _tmp.z).Dot(World) + Matrix.m[1][3];
+	_tmp = GetMatrixAxis(d3Matrix, 1);
+	float y = CVector3(_tmp.x, _tmp.y, _tmp.z).Dot(World) + d3Matrix.m[1][3];
 
-	Out.fX = (ScreenWidth / 2) * (1.0 + x / w);
-	Out.fY = (ScreenHeight / 2) * (1.0 - y / w);
+	Out.fX = (this->_screenWidth / 2) * (1.0 + x / w);
+	Out.fY = (this->_screenHeight / 2) * (1.0 - y / w);
 	return true;
 }
 
@@ -549,4 +567,35 @@ CVector3 CH1Z1::GetEntityDirection(DWORD64 entity)
 	r.fZ = cosf(fy) * cosf(fx);
 
 	return r;
+}
+
+std::tuple<BYTE, BYTE, BYTE, BYTE> CH1Z1::GetEntityColor(BYTE entityType)
+{
+
+	return std::make_tuple(0, 0, 0, 0);
+}
+
+float CH1Z1::CalculateEntity3DModelOffset(BYTE entityType)
+{
+	float fOffset = 0.0f;
+	switch ((H1Z1Def::EntityTypes)entityType)
+	{
+		case H1Z1Def::EntityTypes::TYPE_OffRoader:
+		case H1Z1Def::EntityTypes::TYPE_PickupTruck:
+		case H1Z1Def::EntityTypes::TYPE_PoliceCar:
+			fOffset = 1.0f;
+			break;
+
+		case H1Z1Def::EntityTypes::TYPE_WreckedTruck:
+			fOffset = 2.0f;
+			break;
+
+		case H1Z1Def::EntityTypes::TYPE_WreckedVan:
+			fOffset = 2.5f;
+			break;
+
+		default:
+			break;
+	}
+	return fOffset;
 }

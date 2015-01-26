@@ -22,23 +22,31 @@ misrepresented as being the original software.
 
 #include <Windows.h>
 #include <include/Common.h>
-#include <include/Vector3.h>
+#include <include/main.h>
 #include <include/D3Draw.h>
+#include <include/Vector3.h>
 
 class CH1Z1
 {
 private:
 	static CH1Z1*	_instance;
 
-	DWORD_PTR player;
-	DWORD_PTR game;
-	CVector3 playerPos;
+	DWORD_PTR CGame;
+	DWORD_PTR CGraphics;
+	DWORD_PTR CEntity;
+	DWORD_PTR CPlayer;
 
-	HANDLE proc; 
-	ID3DXLine *line = nullptr;
+	DWORD_PTR LocalPlayer;
+	CVector3 vecPlayerPos;
 
-	LPD3DXSPRITE sprite;
-	LPDIRECT3DTEXTURE9 texture;
+	HANDLE hH1Z1; 
+	ID3DXLine *dxLine = nullptr;
+
+	LPD3DXSPRITE dxSprite;
+	LPDIRECT3DTEXTURE9 dxTexture;
+
+	int16 _screenWidth = 0;
+	int16 _screenHeight = 0;
 
 public:
 	CH1Z1(HANDLE proc);
@@ -48,7 +56,7 @@ public:
 
 	void ParseEntities();
 	void Process();
-	char* GetItemName(DWORD_PTR ptr);
+	char* GetEntityName(DWORD_PTR ptr);
 
 	void DrawFullMap();
 
@@ -56,4 +64,24 @@ public:
 	bool WorldToScreen(const CVector3& World, CVector3& Out);
 
 	std::string CalculateWorldCompassHeading(float playerHeading);
+
+	template<class T>
+	inline bool ReadH1Z1(LPCVOID X, LPVOID Y, T)
+	{
+		return 
+	}
+
+	std::tuple<BYTE, BYTE, BYTE, BYTE> GetEntityColor(BYTE entityType);
+	float CalculateEntity3DModelOffset(BYTE entityType);
+
+
+#define ReadH1Z1 ReadProcessMemory
+
+	RECT GetDesktop()
+	{
+		RECT desktop;
+		const HWND hDesktop = GetDesktopWindow();
+		GetWindowRect(hDesktop, &desktop);
+		return desktop;
+	}
 };

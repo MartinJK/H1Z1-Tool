@@ -31,38 +31,44 @@ namespace H1Z1Def
 {
 	namespace versions
 	{
+#pragma message("!--> USE PATTERN - NO STATIC OFFSETS! [<include/H1Z1Def.h>]")
 		enum class v033134511 : UINT64
 		{
-#pragma message("!--> USE PATTERN - NO STATIC OFFSETS!")
-			// General game funcs
-			cGame = 0x142CB5EA8,
-			cGraphic = 0x142CB5C08,
+			IMAGEBASE = 0x14000000,
+			MAX_ENTITY_TYPE = 256, // BYTE
+
+			// General game structures
+			CGame = 0x142CB5EA8,
+			CGraphic = 0x142CB5C08, // absolute
+			LocalPlayerOffset = 0x11D8, // CGame + Offset
 
 			// Functions
-			WorldToScreen = 0x14030B490,
+			pfnWorldToScreen = 0x14030B490, // absolute
 
 			// Entities
-			EntityTableOffset = 0x678,
-			_EntityTableOffset = 0x350,
+			EntityTableOffset = 0x350,
+			EntityPoolCount = 0x1020, // int32/BYTE
 
 			// Player
-			PlayerOffset = 0x11D8,
-			PlayerPositionOffset = 0x1D0, // Vector3
-			PlayerHeadingOffset = 0x1F0, // float
-			PlayerPitchOffset = 0x1F4, // float
-			PlayerStateOffset = 0x4F8, // BYTE 
-			/*Standing = 0, 
-			Crouching = 1
-			Walking = 2
-			Running = 3
-			Jumping = 4
-			Crouch Walking = 5
-			Prone = 6*/
-			PlayerVelocity = 0x0200, // Vector3
+			CPlayerOffset_Position = 0x1D0, // Vector3
+			CPlayerOffset_Heading = 0x1F0, // float
+			CPlayerOffset_Pitch = 0x1F4, // float
+			CPlayerOffset_State = 0x4F8, // BYTE 
+			CPlayerOffset_Velocity = 0x0200, // Vector3
+			CPlayerOffset_WorldState = 0x0028, // BYTE
 
-			PlayerWorldState = 0x0028, // BYTE
-			/*1(on foot)
-			2(in vehicle)*/
+			// Entity
+			CEntityOffset_Name = 0x3B8, // char [64]
+			CEntityOffset_Position = 0x1D0, // Vector3
+			CEntityOffset_Type = 0x500, // int32/BYTE
+			CEntityObjectOffset_Position = 0x1330, // Vector3
+
+			// Graphics
+			CGraphicsOffset_ScreenWidth = 0x28, // int32
+			CGraphicsOffset_ScreenHeight = 0x2C, // int32
+			CGraphicsOffset_Camera = 0x48, // CCamera
+			CGraphicsOffset_Camera__Matrix = 0x20, // CameraMatrix
+			CGraphicsOffset_D3DXMATRIX = 0x1A0, // D3DXMATRIX
 		};
 	};
 

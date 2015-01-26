@@ -20,8 +20,25 @@ misrepresented as being the original software.
 \*****************************************************************************/
 #pragma once
 
+#undef WINVER
 #define WINVER 0x0502
 
 #include <Windows.h>
 #include <iostream>
 #include <include/D3Overlay.h>
+
+// CONFIGURATION
+#define _ATTACK_ALERT				1
+#define _DEBUG_ITEMS				0
+#define _3D_ENTITY_DISPLAY			1
+#define	_MINIMAP					0
+
+#define _ATTACK_NEAR_PLAYER_ALERT	1
+#define _IGNORE_PLAYERS \
+if(scopeobj._name != "Testuser" \
+&& scopeobj._name != "Testuser2" \
+)
+
+/* SAMPLE:
+&& scopeobject._name != "User you like" \
+*/
