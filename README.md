@@ -1,6 +1,8 @@
 # H1Z1Tool
 H1Z1 Map / Tool modification
 
+![preview](http://i.imgur.com/QdGSgfA.jpg)
+
 ## Requirements in order to build on Window
 - Visual Studio 2015 Preview or CTP
 - Visual Studio 2015 Redistributables/Runtime
