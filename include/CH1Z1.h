@@ -65,12 +65,6 @@ public:
 
 	std::string CalculateWorldCompassHeading(float playerHeading);
 
-	template<class T>
-	inline bool ReadH1Z1(LPCVOID X, LPVOID Y, T)
-	{
-		return 
-	}
-
 	std::tuple<BYTE, BYTE, BYTE, BYTE> GetEntityColor(BYTE entityType);
 	float CalculateEntity3DModelOffset(BYTE entityType);
 
