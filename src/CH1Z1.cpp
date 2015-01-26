@@ -120,6 +120,13 @@ void CH1Z1::ParseEntities()
 		ReadH1Z1(this->hH1Z1, (void*)(_obj + +STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Position)), &scopeobj._position, sizeof(CVector3), NULL);
 		ReadH1Z1(this->hH1Z1, (void*)(_obj + +STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Type)), &scopeobj._type, sizeof(int32), NULL);
 
+		// Get the entity color
+		auto color = this->GetEntityColor(scopeobj._type);
+		scopeobj.R = std::get<1>(color);
+		scopeobj.G = std::get<2>(color);
+		scopeobj.B = std::get<3>(color);
+		scopeobj.A = std::get<0>(color);
+
 		// Ignore game designer placed stuff
 		// Also disable empty strings and punji sticks/ wire and wood arrows
 		if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Door
@@ -145,12 +152,12 @@ void CH1Z1::ParseEntities()
 				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie2)
 			{
 #if _ATTACK_ALERT
-				if (fDistance < 20.f)
+				if (fDistance < 25.f)
 				{
 					RECT desktop = this->GetDesktop();
 
 					char szMessage[128];
-					sprintf_s(szMessage, "!Attention: There\'s a %s close to you!", scopeobj._name);
+					sprintf_s(szMessage, "!>> Attention: There\'s a %s close to you <<!", scopeobj._name);
 
 					DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 255, 0, 0, pFontSmall);
 
@@ -181,7 +188,7 @@ void CH1Z1::ParseEntities()
 						RECT desktop = this->GetDesktop();
 
 						char szMessage[128];
-						sprintf_s(szMessage, "!Attention: Player %s is close to you!", scopeobj._name);
+						sprintf_s(szMessage, "!>> Attention: Player %s is close to you <<!", scopeobj._name);
 
 						DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 255, 0, 0, pFontSmall);
 
@@ -283,7 +290,7 @@ void CH1Z1::ParseEntities()
 					else
 						sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDistance);
 
-					DrawString(szString, _vecScreen.fX, _vecScreen.fY, 240, 240, 250, scopeobj._isPlayer ? pFontSmall : pFontSmaller);
+					DrawString(szString, _vecScreen.fX, _vecScreen.fY, scopeobj.R, scopeobj.G, scopeobj.B, scopeobj._isPlayer ? pFontSmall : pFontSmaller);
 				}
 			}
 			else // objects
@@ -296,7 +303,7 @@ void CH1Z1::ParseEntities()
 				if (bIsOnScreen)
 				{
 					sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDistance);
-					DrawString(szString, _vecScreen.fX, _vecScreen.fY, 240, 240, 250, pFontSmaller);
+					DrawString(szString, _vecScreen.fX, _vecScreen.fY, scopeobj.R, scopeobj.G, scopeobj.B, pFontSmaller);
 				}
 
 			}
@@ -571,8 +578,18 @@ CVector3 CH1Z1::GetEntityDirection(DWORD64 entity)
 
 std::tuple<BYTE, BYTE, BYTE, BYTE> CH1Z1::GetEntityColor(BYTE entityType)
 {
+	switch ((H1Z1Def::EntityTypes)entityType)
+	{
+		case H1Z1Def::EntityTypes::TYPE_OffRoader:
+		case H1Z1Def::EntityTypes::TYPE_PickupTruck:
+		case H1Z1Def::EntityTypes::TYPE_PoliceCar:
+			return std::make_tuple(255, 100, 50, 255);
 
-	return std::make_tuple(0, 0, 0, 0);
+		default:
+			return std::make_tuple(255, 240, 240, 250);
+	}
+
+	return std::make_tuple(255, 240, 240, 250);
 }
 
 float CH1Z1::CalculateEntity3DModelOffset(BYTE entityType)
@@ -592,6 +609,13 @@ float CH1Z1::CalculateEntity3DModelOffset(BYTE entityType)
 
 		case H1Z1Def::EntityTypes::TYPE_WreckedVan:
 			fOffset = 2.5f;
+			break;
+
+		case H1Z1Def::EntityTypes::TYPE_Zombie:
+		case H1Z1Def::EntityTypes::TYPE_Wolf:
+		case H1Z1Def::EntityTypes::TYPE_Zombie2:
+		case H1Z1Def::EntityTypes::TYPE_Player:
+			fOffset = 1.75f;
 			break;
 
 		default:

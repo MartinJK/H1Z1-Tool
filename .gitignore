@@ -32,4 +32,4 @@
 *.suo
 *.filters
 *.opensdf
-build/
+build/*

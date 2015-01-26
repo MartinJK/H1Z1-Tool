@@ -163,6 +163,10 @@ namespace H1Z1Def
 		bool _isObject = false;
 		bool _isEntity = false;
 		bool _isPlayer = false;
+		BYTE R = 0;
+		BYTE G = 0;
+		BYTE B = 0;
+		BYTE A = 0;
 	};
 
 	class CCameraMatrix
