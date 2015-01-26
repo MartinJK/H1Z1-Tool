@@ -188,7 +188,9 @@ void CH1Z1::ParseEntities()
 				&& scopeobj._position.fZ == 0.f && !scopeobj._isPlayer)
 			{
 				// Grab the original position
-				scopeobj._objectPosition = CVector3(0.f, 0.f, 0.f);
+				ReadProcessMemory(proc, (void*)(_obj + 0x1330), &scopeobj._objectPosition, sizeof(CVector3), NULL);
+				fDinstance = (playerPos - scopeobj._objectPosition).Length();
+
 				scopeobj._isObject = true;
 			}
 
@@ -198,9 +200,13 @@ void CH1Z1::ParseEntities()
 			// Draw to list
 			if (scopeobj._isObject)
 			{
-				sprintf_s(szString, "- %s, Type[%d]",
+				sprintf_s(szString, "- %s, Type[%d], Position[%.2f, %.2f, %.2f], Distance[%.2fm]",
 					scopeobj._name,
-					scopeobj._type);
+					scopeobj._type,
+					scopeobj._objectPosition.fX,
+					scopeobj._objectPosition.fY,
+					scopeobj._objectPosition.fZ,
+					fDinstance);
 
 				DrawString(szString, 915, objectOffset, 240, 240, 250, pFontSmaller);
 				objectOffset += 15;
@@ -254,6 +260,19 @@ void CH1Z1::ParseEntities()
 						DrawString(szString, _vecScreen.fX, _vecScreen.fY, 240, 240, 250, pFontSmaller);
 					}
 				}
+			}
+			else // objects
+			{
+				// Draw it on the screen(World 2 Screen)
+				CVector3 _vecScreen;
+				bool bResult = this->WorldToScreen(scopeobj._objectPosition, _vecScreen);
+
+				if (bResult)
+				{
+					sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDinstance);
+					DrawString(szString, _vecScreen.fX, _vecScreen.fY, 240, 240, 250, pFontSmaller);
+				}
+
 			}
 
 			// Draw to minimap
