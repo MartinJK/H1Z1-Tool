@@ -151,8 +151,12 @@ namespace H1Z1Def
 	{
 	public:
 		CVector3 _position;
+		CVector3 _objectPosition;
 		char _name[64];
 		int32 _type;
+		bool _isObject = false;
+		bool _isEntity = false;
+		bool _isPlayer = false;
 	};
 
 	class CCameraMatrix

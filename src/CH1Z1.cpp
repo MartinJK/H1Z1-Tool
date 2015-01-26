@@ -21,7 +21,6 @@ misrepresented as being the original software.
 #include <include/CH1Z1.h>
 #include <include/D3Keys.h>
 #include <include/H1Z1Def.h>
-#include <include/D3Draw.h>
 
 CH1Z1* CH1Z1::_instance = nullptr;
 
@@ -36,25 +35,57 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	if (!proc)
 		return;
 
-	ReadProcessMemory(this->proc, (void*)(0x142CB5EA8), &game, sizeof(DWORD64), NULL);
+	// Create basic ptr's
+	ReadProcessMemory(this->proc, (void*)(H1Z1_DEF_LATEST::cGame), &game, sizeof(DWORD64), NULL);
 	ReadProcessMemory(this->proc, (void*)(game + STATIC_CAST(H1Z1_DEF_LATEST::PlayerOffset)), &player, sizeof(DWORD64), NULL);
 	ReadProcessMemory(this->proc, (void*)(player + STATIC_CAST(H1Z1_DEF_LATEST::PlayerPositionOffset)), &playerPos, sizeof(CVector3), NULL);
 	
-	//DWORD addr = player;
-	//__debugbreak();
+	// Create player heading line
+	D3DXCreateLine(p_Device, &this->line);
+	this->line->SetWidth(2);
+	this->line->SetPattern(0xffffffff);
 
-	// seems to be the player name
-	auto test = GetItemName();
+	// Create fullscreen map
+	D3DXCreateSprite(p_Device, &sprite);
+
+	wchar_t szExePath[MAX_PATH] = { 0 };
+	GetModuleFileNameW(GetModuleHandle(NULL), szExePath, MAX_PATH);
+
+	// Fix path in string
+	for (size_t i = wcslen(szExePath); i > 0; --i)
+	{
+		if (szExePath[i] == L'\\')
+		{
+			szExePath[i + 1] = L'\0';
+			break;
+		}
+	}
+
+	std::wstring loc = szExePath;
+	loc.append(L"map.png");
+
+	D3DXCreateTextureFromFile(p_Device, loc.c_str(), &texture);
 }
 
 CH1Z1::~CH1Z1()
 {
-
+	texture->Release();
+	line->Release();
+	sprite->Release();
+	p_Device->Release();
 }
 
 void CH1Z1::ParseEntities()
 {
-	int iOffset = 100;
+	DrawString("Entities nearby(300m)", 15, 120, 240, 240, 250, pFontSmall);
+	DrawString("Players nearby(300m)", 515, 120, 240, 240, 250, pFontSmall);
+	DrawString("Objects nearby(300m)", 915, 120, 240, 240, 250, pFontSmall);
+
+	int entityOffset = 150;
+	int playerOffset = 150;
+	int objectOffset = 150;
+	int warningOffset = 15;
+
 	DWORD SizeOfEntity = 0;
 	ReadProcessMemory(this->proc, (void*)(game + 0x1020), &SizeOfEntity, sizeof(SizeOfEntity), NULL);
 
@@ -66,7 +97,7 @@ void CH1Z1::ParseEntities()
 	_obj = player;
 
 	// Now parse all
-	while (_temp < SizeOfEntity)
+	while (_temp < SizeOfEntity/*-1? so the localplayer will be extracted from the entity list?*/)
 	{
 		// Read entity from memory
 		ReadProcessMemory(this->proc, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::_EntityTableOffset)), &_obj, sizeof(DWORD64), NULL);
@@ -83,10 +114,15 @@ void CH1Z1::ParseEntities()
 		ReadProcessMemory(proc, (void*)(_obj + 0x500), &scopeobj._type, sizeof(int32), NULL);
 
 		// Ignore game designer placed stuff
+		// Also disable empty strings and punji sticks/ wire and wood arrows
 		if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Door
 			|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Door2
 			|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Door3
-			|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_FireHydrant)
+			|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_FireHydrant
+			|| scopeobj._name == ""
+			|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_AggressiveItems
+			|| scopeobj._type == 55 /*unkown obj*/
+			|| scopeobj._type == 44 /*wood arrow*/)
 			continue;
 
 		// Entity Found
@@ -95,7 +131,7 @@ void CH1Z1::ParseEntities()
 			char szString[256];
 			float fDinstance = (playerPos - scopeobj._position).Length();
 
-			sprintf_s(szString, "Entity %s type[%d], pos[%.2f, %.2f, %.2f], distance[%.2f]",
+			sprintf_s(szString, "- %s type[%d], pos[%.2f, %.2f, %.2f], distance[%.2f]",
 				scopeobj._name,
 				scopeobj._type,
 				scopeobj._position.fX,
@@ -106,15 +142,11 @@ void CH1Z1::ParseEntities()
 			// Draw it to the item list (left)
 
 			// Do not draw zombies to the entity list, just add a warning if they're close!
-			// Also disable empty strings and punji sticks/ wire
 			if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie
 				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Wolf
-				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie2
-				|| scopeobj._name == ""
-				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_AggressiveItems 
-				|| scopeobj._type == 55 /*unkown obj*/)
+				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie2)
 			{
-				if (fDinstance < 10.f) 
+				if (fDinstance < 20.f) 
 				{
 					DWORD_PTR Graphics;
 					ReadProcessMemory(this->proc, (void*)(H1Z1_DEF_LATEST::cGraphic), &Graphics, sizeof(DWORD64), NULL);
@@ -126,37 +158,145 @@ void CH1Z1::ParseEntities()
 					int ScreenWidth = 0;
 					ReadProcessMemory(this->proc, (void*)(Graphics + 0x28), &ScreenWidth, sizeof(ScreenWidth), NULL);
 
-					DrawString("Attention! There\'s a zombie close to you!", desktop.right-(ScreenWidth/2)-150, 15, 255, 0, 0, pFontSmall);
+					char szMessage[512];
+					sprintf_s(szMessage, "Attention! There\'s a %s close to you!", scopeobj._name);
+
+					DrawString(szMessage, desktop.right-(ScreenWidth/2)-150, warningOffset, 255, 0, 0, pFontSmall);
+
+					warningOffset += 15;
+
+					// Draw the zombie in 3D so the player will see him
+					CVector3 _vecScreen;
+					bool bResult = this->WorldToScreen(scopeobj._position, _vecScreen);
+					if (bResult)
+					{
+						sprintf_s(szString, ">> -%s- <<", scopeobj._name);
+
+						DrawString(szString, _vecScreen.fX, _vecScreen.fY, 255, 50, 50, pFontSmall);
+					}
+
 				}
 				continue;
 			}
 
-			// Check if the coordinates are messed up
+			// Sort out types
+			if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Player)
+				scopeobj._isPlayer = true;
+
 			if (scopeobj._position.fX == 0.f
 				&& scopeobj._position.fY == 0.f
-				&& scopeobj._position.fZ == 0.f)
+				&& scopeobj._position.fZ == 0.f && !scopeobj._isPlayer)
 			{
-				sprintf_s(szString, "Entity %s type[%d]",
+				// Grab the original position
+				scopeobj._objectPosition = CVector3(0.f, 0.f, 0.f);
+				scopeobj._isObject = true;
+			}
+
+			if (!scopeobj._isPlayer && !scopeobj._isObject)
+				scopeobj._isEntity = true;
+
+			// Draw to list
+			if (scopeobj._isObject)
+			{
+				sprintf_s(szString, "- %s, Type[%d]",
 					scopeobj._name,
 					scopeobj._type);
 
-				DrawString(szString, 15, iOffset, 240, 240, 250, pFontSmaller);
-				iOffset += 15;
-
-				continue; // do not draw to 3D-2-2D
+				DrawString(szString, 915, objectOffset, 240, 240, 250, pFontSmaller);
+				objectOffset += 15;
 			}
 
-			DrawString(szString, 15, iOffset, 240, 240, 250, pFontSmaller);
-			iOffset += 15;
-
-			// Draw it on the screen(World 2 Screen)
-			CVector3 _vecScreen;
-			bool bResult = this->WorldToScreen(scopeobj._position, _vecScreen);
-			if (bResult)
+			if (scopeobj._isPlayer)
 			{
-				sprintf_s(szString, "%s", scopeobj._name);
+				sprintf_s(szString, "- %s, Position[%.2f, %.2f, %.2f], Distance[%.1fm]",
+					scopeobj._name,
+					scopeobj._position.fX,
+					scopeobj._position.fY,
+					scopeobj._position.fZ,
+					fDinstance);
 
-				DrawString(szString, _vecScreen.fX, _vecScreen.fY, 240, 240, 250, pFontSmaller);
+				DrawString(szString, 515, playerOffset, 240, 240, 250, pFontSmaller);
+				playerOffset += 15;
+			}
+
+			if (scopeobj._isEntity)
+			{
+				sprintf_s(szString, "- %s, Type[%d], Position[%.2f, %.2f, %.2f], Distance[%.2fm]",
+					scopeobj._name,
+					scopeobj._type,
+					scopeobj._position.fX,
+					scopeobj._position.fY,
+					scopeobj._position.fZ,
+					fDinstance);
+
+				DrawString(szString, 15, entityOffset, 240, 240, 250, pFontSmaller);
+				entityOffset += 15;
+			}
+
+
+			// Check if he's a player so we draw a big text with a hint
+			if (!scopeobj._isObject)
+			{
+				// Draw it on the screen(World 2 Screen)
+				CVector3 _vecScreen;
+				bool bResult = this->WorldToScreen(scopeobj._position, _vecScreen);
+				
+				if (bResult)
+				{
+					if (scopeobj._isPlayer)
+					{
+						sprintf_s(szString, "Player: %s  (%2.fm)", scopeobj._name, fDinstance);
+						DrawString(szString, _vecScreen.fX, _vecScreen.fY, 240, 240, 250, pFontSmall);
+					}
+					else
+					{
+						sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDinstance);
+						DrawString(szString, _vecScreen.fX, _vecScreen.fY, 240, 240, 250, pFontSmaller);
+					}
+				}
+			}
+
+			// Draw to minimap
+			RECT desktop;
+			const HWND hDesktop = GetDesktopWindow();
+			GetWindowRect(hDesktop, &desktop);
+
+			auto fWidth = 200;
+			auto fHeight = 200;
+			auto fX = (desktop.right - 20 - (fWidth/2));
+			auto fY = (desktop.bottom - 75 - (fHeight/2));
+
+			// Check if we're a lootable thing or whatever else
+			CVector3 diff;
+			if (scopeobj._isObject) // Parse objects
+				diff = CVector3(scopeobj._objectPosition.fX - playerPos.fX,
+					scopeobj._objectPosition.fY - playerPos.fY,
+					scopeobj._objectPosition.fZ - playerPos.fZ);
+			else // Parse entities
+				diff = CVector3(scopeobj._position.fX - playerPos.fX,
+					scopeobj._position.fY - playerPos.fY,
+					scopeobj._position.fZ - playerPos.fZ);
+
+			if (diff.Length() <= 200)
+			{
+				if(diff.fX >= 0)
+					fX += diff.fX > 95 ? 95 : diff.fX;
+				else
+					fX += diff.fX < -95 ? -95 : diff.fX;
+
+				if (diff.fY >= 0)
+					fY += diff.fY > 95 ? 95 : diff.fY;
+				else
+					fY += diff.fY < -95 ? -95 : diff.fY;
+
+				if(scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Player)
+					FillRGB(fX, fY, 4, 4, 255, 0, 0, 255);
+				else if(scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_OffRoader)
+					FillRGB(fX, fY, 4, 4, 0, 0, 255, 255);
+				else if(scopeobj._isObject) // Lootable objects
+					FillRGB(fX, fY, 4, 4, 0, 255, 255, 255);
+				else // other entities
+					FillRGB(fX, fY, 4, 4, 0, 255, 0, 255);
 			}
 		}
 		else
@@ -205,7 +345,7 @@ void CH1Z1::Process()
 
 		auto fWidth = 200;
 		auto fHeight = 200;
-		auto fX = (desktop.right - 20 -fWidth);
+		auto fX = (desktop.right - 20 - fWidth);
 		auto fY = (desktop.bottom - 75);
 
 		//DrawHealthBarBack(fX, fY, fWidth, fHeight);
@@ -225,23 +365,79 @@ void CH1Z1::Process()
 		// Draw local player pixel
 		FillRGB((fX + (fWidth / 2)-1), (fY - (fHeight / 2)-1), 4, 4, 255, 0, 0, 255);
 
-		// Draw heading line
-		if(fHeading > 0)
-			FillRGB((fX + (fWidth / 2) - 1), (fY - (fHeight / 2) - 1), fHeading*15, fHeading*15, 255, 0, 0, 255);
-		/*else
-			FillRGB(fX, (fY - fHeight), fHeading * 15, fHeading * 15, 255, 0, 0, 255);*/
+		// Draw compass
+		DrawString("N", fX + (fWidth / 2) - 5, fY - fHeight - 20, 240, 240, 250, pFontSmall);
+		DrawString("E", fX - 15 , fY - (fHeight / 2) - 8, 240, 240, 250, pFontSmall);
+		DrawString("W", fX + fWidth + 5, fY - (fHeight / 2) - 5, 240, 240, 250, pFontSmall);
+		DrawString("S", fX + (fWidth / 2) - 5, fY + 5, 240, 240, 250, pFontSmall);
+
+		// Draw player heading line
+#pragma message("FIX CONVERSION!")
+		D3DXVECTOR2 points[2];
+
+		points[0] = D3DXVECTOR2((fX + (fWidth / 2) - 1), (fY - (fHeight / 2) - 1));
+		points[1] = D3DXVECTOR2(fX + (100 * fHeading) , fY + (100 * fHeading));
+
+		line->Draw(points, 2, 0xffffffff);
 	}
 
 	// Prase entities(objects)
 	this->ParseEntities();
 }
 
-char* CH1Z1::GetItemName()
+void CH1Z1::DrawFullMap()
+{
+	RECT desktop;
+	const HWND hDesktop = GetDesktopWindow();
+	GetWindowRect(hDesktop, &desktop);
+
+	// Draw huge fullscreen map
+	sprite->Begin(D3DXSPRITE_ALPHABLEND);
+	RECT rc = { (desktop.right / 4) / 2, (desktop.bottom / 4) / 2, (desktop.right / 4) * 3, (desktop.bottom / 4) * 3 };
+	D3DXVECTOR2 spriteCentre = D3DXVECTOR2(32.0f, 32.0f);
+	D3DXVECTOR2 trans = D3DXVECTOR2((desktop.right / 2) - desktop.right / 4, (desktop.bottom / 8));
+	float rotation = 0.f;
+	D3DXMATRIX mat;
+	D3DXVECTOR2 scaling(0.4f, 0.4f);
+	D3DXMatrixTransformation2D(&mat, NULL, 0.0, &scaling, &spriteCentre, rotation, &trans);
+	sprite->SetTransform(&mat);
+	sprite->Draw(texture, NULL, NULL, NULL, 0xFFFFFFFF);
+	sprite->End();
+
+	/*
+	// WHOLE WORLD MAP
+	int32 einheit = 200 / 6000;
+
+	int32 x = 0;
+	if (scopeobj._position.fX < 0)
+	x += -(scopeobj._position.fX);
+	else
+	x += 3000 + scopeobj._position.fX;
+
+	x = (x * einheit);
+
+	int32 y = 0;
+	if (scopeobj._position.fY < 0)
+	y += 3000 + scopeobj._position.fY;
+	else
+	y += (3000 - scopeobj._position.fX);
+
+	x = (x * einheit);
+	y = (y * einheit);
+
+	fX += x;
+	fY += y;
+
+	FillRGB(fX, fY, 4, 4, 0, 255, 0, 255);
+	*/
+}
+
+char* CH1Z1::GetItemName(DWORD_PTR ptr)
 {
 	static char itemName[64];
 
 	DWORD64 ItemNamePtr;
-	ReadProcessMemory(proc, (void*)(this->player + 0x3B8), &ItemNamePtr, sizeof(DWORD64), NULL);
+	ReadProcessMemory(proc, (void*)(ptr + 0x3B8), &ItemNamePtr, sizeof(DWORD64), NULL);
 	ReadProcessMemory(proc, (void*)(ItemNamePtr), &itemName, sizeof(itemName), NULL);
 
 	return itemName;

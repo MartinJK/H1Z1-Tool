@@ -23,6 +23,7 @@ misrepresented as being the original software.
 #include <Windows.h>
 #include <include/Common.h>
 #include <include/Vector3.h>
+#include <include/D3Draw.h>
 
 class CH1Z1
 {
@@ -33,7 +34,11 @@ private:
 	DWORD_PTR game;
 	CVector3 playerPos;
 
-	HANDLE proc;
+	HANDLE proc; 
+	ID3DXLine *line = nullptr;
+
+	LPD3DXSPRITE sprite;
+	LPDIRECT3DTEXTURE9 texture;
 
 public:
 	CH1Z1(HANDLE proc);
@@ -43,7 +48,9 @@ public:
 
 	void ParseEntities();
 	void Process();
-	char* GetItemName();
+	char* GetItemName(DWORD_PTR ptr);
+
+	void DrawFullMap();
 
 	CVector3 GetEntityDirection(DWORD64 entity);
 	bool WorldToScreen(const CVector3& World, CVector3& Out);

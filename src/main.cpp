@@ -181,9 +181,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	MSG Message;
-	H1Z1 = new CH1Z1(proc);
-
 	DirectXInit(hWnd);
+	H1Z1 = new CH1Z1(proc);
 	for (;;)
 	{
 		if (PeekMessage(&Message, hWnd, 0, 0, PM_REMOVE))
