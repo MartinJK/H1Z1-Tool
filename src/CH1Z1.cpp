@@ -25,6 +25,11 @@ misrepresented as being the original software.
 
 CH1Z1* CH1Z1::_instance = nullptr;
 
+D3DXVECTOR3& GetMatrixAxis(D3DXMATRIX matrix, UINT i)
+{
+	return *(D3DXVECTOR3*)&matrix.m[i][0];
+}
+
 CH1Z1::CH1Z1(HANDLE proc) : 
 	proc(proc)
 {
@@ -34,6 +39,9 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	ReadProcessMemory(this->proc, (void*)(0x142CB5EA8), &game, sizeof(DWORD64), NULL);
 	ReadProcessMemory(this->proc, (void*)(game + STATIC_CAST(H1Z1_DEF_LATEST::PlayerOffset)), &player, sizeof(DWORD64), NULL);
 	ReadProcessMemory(this->proc, (void*)(player + STATIC_CAST(H1Z1_DEF_LATEST::PlayerPositionOffset)), &playerPos, sizeof(CVector3), NULL);
+	
+	//DWORD addr = player;
+	//__debugbreak();
 
 	// seems to be the player name
 	auto test = GetItemName();
@@ -47,33 +55,113 @@ CH1Z1::~CH1Z1()
 void CH1Z1::ParseEntities()
 {
 	int iOffset = 100;
+	DWORD SizeOfEntity = 0;
+	ReadProcessMemory(this->proc, (void*)(game + 0x1020), &SizeOfEntity, sizeof(SizeOfEntity), NULL);
 
-	INT64 addr = player;
-	__debugbreak(); // check this addr as we've get 0xC5 access violation here
-	// Rewrite this shit to ReadProcessMemory as we're not injected into the game executable anymore....
+	uint16 _temp = 0;
+	DWORD_PTR _obj;
+	DWORD64 _ptr;
+	
+	// Set the current object to localplayer so we parse every entity
+	_obj = player;
 
-	INT64 _temp;
-	ReadProcessMemory(this->proc, (INT64*)(addr + STATIC_CAST(H1Z1_DEF_LATEST::EntityTableOffset)), &_temp, sizeof(INT64), NULL);
-
-	while (_temp)
+	// Now parse all
+	while (_temp < SizeOfEntity)
 	{
-		H1Z1Def::CObject * obj = *(H1Z1Def::CObject**)(addr + STATIC_CAST(H1Z1_DEF_LATEST::_EntityTableOffset));
-			
+		// Read entity from memory
+		ReadProcessMemory(this->proc, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::_EntityTableOffset)), &_obj, sizeof(DWORD64), NULL);
+
+		// Generate new entity/object
+		H1Z1Def::CObject scopeobj;
+
+		// Set the iteration to the next entity
+		_temp += 1;
+
+		ReadProcessMemory(proc, (void*)(_obj + 0x3B8), &_ptr, sizeof(DWORD64), NULL);
+		ReadProcessMemory(proc, (void*)(_ptr), &scopeobj._name, sizeof(scopeobj._name), NULL);
+		ReadProcessMemory(proc, (void*)(_obj + 0x1D0), &scopeobj._position, sizeof(CVector3), NULL);
+		ReadProcessMemory(proc, (void*)(_obj + 0x500), &scopeobj._type, sizeof(int32), NULL);
+
+		// Ignore game designer placed stuff
+		if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Door
+			|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Door2
+			|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Door3
+			|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_FireHydrant)
+			continue;
+
 		// Entity Found
+		if (scopeobj._type < 255 && scopeobj._type >= 0)
 		{
-			char szString[512] = { 0 };
-			
-			CVector3 entityPos(obj->pos.x, obj->pos.y, obj->pos.z);
-			float fDinstance = (playerPos - entityPos).Length();
-			sprintf_s(szString, "Entity: type[%d], pos[%.2f, %.2f, %.2f], distance[%.2f]", obj->type, obj->pos.x, obj->pos.y, obj->pos.z, fDinstance);
-			iOffset += 15;
+			char szString[256];
+			float fDinstance = (playerPos - scopeobj._position).Length();
+
+			sprintf_s(szString, "Entity %s type[%d], pos[%.2f, %.2f, %.2f], distance[%.2f]",
+				scopeobj._name,
+				scopeobj._type,
+				scopeobj._position.fX,
+				scopeobj._position.fY,
+				scopeobj._position.fZ,
+				fDinstance);
+
+			// Draw it to the item list (left)
+
+			// Do not draw zombies to the entity list, just add a warning if they're close!
+			// Also disable empty strings and punji sticks/ wire
+			if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie
+				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Wolf
+				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie2
+				|| scopeobj._name == ""
+				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_AggressiveItems 
+				|| scopeobj._type == 55 /*unkown obj*/)
+			{
+				if (fDinstance < 10.f) 
+				{
+					DWORD_PTR Graphics;
+					ReadProcessMemory(this->proc, (void*)(H1Z1_DEF_LATEST::cGraphic), &Graphics, sizeof(DWORD64), NULL);
+
+					RECT desktop;
+					const HWND hDesktop = GetDesktopWindow();
+					GetWindowRect(hDesktop, &desktop);
+
+					int ScreenWidth = 0;
+					ReadProcessMemory(this->proc, (void*)(Graphics + 0x28), &ScreenWidth, sizeof(ScreenWidth), NULL);
+
+					DrawString("Attention! There\'s a zombie close to you!", desktop.right-(ScreenWidth/2)-150, 15, 255, 0, 0, pFontSmall);
+				}
+				continue;
+			}
+
+			// Check if the coordinates are messed up
+			if (scopeobj._position.fX == 0.f
+				&& scopeobj._position.fY == 0.f
+				&& scopeobj._position.fZ == 0.f)
+			{
+				sprintf_s(szString, "Entity %s type[%d]",
+					scopeobj._name,
+					scopeobj._type);
+
+				DrawString(szString, 15, iOffset, 240, 240, 250, pFontSmaller);
+				iOffset += 15;
+
+				continue; // do not draw to 3D-2-2D
+			}
 
 			DrawString(szString, 15, iOffset, 240, 240, 250, pFontSmaller);
+			iOffset += 15;
+
+			// Draw it on the screen(World 2 Screen)
+			CVector3 _vecScreen;
+			bool bResult = this->WorldToScreen(scopeobj._position, _vecScreen);
+			if (bResult)
+			{
+				sprintf_s(szString, "%s", scopeobj._name);
+
+				DrawString(szString, _vecScreen.fX, _vecScreen.fY, 240, 240, 250, pFontSmaller);
+			}
 		}
-
-		addr = (INT64)obj;
+		else
+			return;
 	}
-
 }
 
 void CH1Z1::Process()
@@ -145,7 +233,7 @@ void CH1Z1::Process()
 	}
 
 	// Prase entities(objects)
-	//this->ParseEntities();
+	this->ParseEntities();
 }
 
 char* CH1Z1::GetItemName()
@@ -192,17 +280,23 @@ std::string CH1Z1::CalculateWorldCompassHeading(float playerHeading)
 
 bool CH1Z1::WorldToScreen(const CVector3& World, CVector3& Out)
 {
-	/*
-	DWORD_PTR Graphics = *(DWORD_PTR*)(0x142CD83A8);
-	DWORD_PTR Camera = *(DWORD_PTR*)(Graphics + 0x48);
-	DWORD_PTR CameraMatrix = *(DWORD_PTR*)(Camera + 0x20);
+	DWORD_PTR Graphics;
+	DWORD_PTR Camera;
+	DWORD_PTR CameraMatrix;
+
+	ReadProcessMemory(this->proc, (void*)(H1Z1_DEF_LATEST::cGraphic), &Graphics, sizeof(DWORD64), NULL);
+	ReadProcessMemory(this->proc, (void*)(Graphics + 0x48), &Camera, sizeof(DWORD64), NULL);
+	ReadProcessMemory(this->proc, (void*)(Camera + 0x20), &CameraMatrix, sizeof(DWORD64), NULL);
 
 	CameraMatrix += 0x10;
 
-	D3DXMATRIX Matrix = *(D3DXMATRIX*)(CameraMatrix + 0x1A0);
-
-	int ScreenWidth = *(int*)(Graphics + 0x28);
-	int ScreenHeight = *(int*)(Graphics + 0x2C);
+	D3DXMATRIX Matrix;
+	ReadProcessMemory(this->proc, (void*)(CameraMatrix + 0x1A0), &Matrix, sizeof(D3DXMATRIX), NULL);
+	
+	int ScreenWidth = 0;
+	int ScreenHeight = 0;
+	ReadProcessMemory(this->proc, (void*)(Graphics + 0x28), &ScreenWidth, sizeof(ScreenWidth), NULL);
+	ReadProcessMemory(this->proc, (void*)(Graphics + 0x2C), &ScreenHeight, sizeof(ScreenHeight), NULL);
 
 	D3DXMatrixTranspose(&Matrix, &Matrix);
 
@@ -211,17 +305,21 @@ bool CH1Z1::WorldToScreen(const CVector3& World, CVector3& Out)
 	Matrix._23 *= -1;
 	Matrix._24 *= -1;
 
-	float w = GetMatrixAxis(Matrix, 3).Dot(World) + Matrix.m[3][3];
+	// Convert D3Vector3 to CVector3
+	auto _tmp = GetMatrixAxis(Matrix, 3);
+	float w = CVector3(_tmp.x, _tmp.y, _tmp.z).Dot(World) + Matrix.m[3][3];
 
 	if (w < 0.098)
 		return false;
 
-	float x = GetMatrixAxis(Matrix, 0).Dot(World) + Matrix.m[0][3];
-	float y = GetMatrixAxis(Matrix, 1).Dot(World) + Matrix.m[1][3];
+	_tmp = GetMatrixAxis(Matrix, 0);
+	float x = CVector3(_tmp.x, _tmp.y, _tmp.z).Dot(World) + Matrix.m[0][3];
+
+	_tmp = GetMatrixAxis(Matrix, 1);
+	float y = CVector3(_tmp.x, _tmp.y, _tmp.z).Dot(World) + Matrix.m[1][3];
 
 	Out.fX = (ScreenWidth / 2) * (1.0 + x / w);
 	Out.fY = (ScreenHeight / 2) * (1.0 - y / w);
-	*/
 	return true;
 }
 

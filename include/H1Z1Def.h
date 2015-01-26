@@ -50,8 +50,19 @@ namespace H1Z1Def
 			PlayerPositionOffset = 0x1D0, // Vector3
 			PlayerHeadingOffset = 0x1F0, // float
 			PlayerPitchOffset = 0x1F4, // float
+			PlayerStateOffset = 0x4F8, // BYTE 
+			/*Standing = 0, 
+			Crouching = 1
+			Walking = 2
+			Running = 3
+			Jumping = 4
+			Crouch Walking = 5
+			Prone = 6*/
+			PlayerVelocity = 0x0200, // Vector3
 
-			PlayerWorldState = 0x0028, // BYTE - 1(on foot) - 2(in vehicle)
+			PlayerWorldState = 0x0028, // BYTE
+			/*1(on foot)
+			2(in vehicle)*/
 		};
 	};
 
@@ -93,6 +104,7 @@ namespace H1Z1Def
 
 		TYPE_Food = 21,
 
+		// Disabled since v0.33.1.34511s
 		TYPE_GroundTamper = 95,
 
 		TYPE_Furance = 47,
@@ -101,7 +113,6 @@ namespace H1Z1Def
 		TYPE_DewCollector = 54,
 		TYPE_FireDrum = 55,
 
-		// Airdrop leftovers or quest caches?
 		TYPE_TheMedic_Cache = 152,
 		TYPE_TheLoneWolf_Cache = 150,
 		TYPE_TheBuilder_Cache = 155,
@@ -139,11 +150,32 @@ namespace H1Z1Def
 	class CObject                                
 	{
 	public:
-		char _0x0000[464];
-		D3DXVECTOR3 pos; //0x01D0 
-		char _0x01DC[476];
-		char * name; //0x03CC 
-		char _0x03D0[320];
-		EntityTypes type;
+		CVector3 _position;
+		char _name[64];
+		int32 _type;
+	};
+
+	class CCameraMatrix
+	{
+	public:
+		char __pad0[0x1B0];
+		//Matrix4x4 m_SomeMatrix; // 0x01B0
+	};
+
+	class CCamera
+	{
+	public:
+		char __pad0[0x20];
+		CCameraMatrix* m_pCameraMatrix; // 0x0020
+	};
+
+	class CGraphics
+	{
+	public:
+		char __pad0[40];
+		int m_nScreenWidth; // 0x0028
+		int m_nScreenHeight; // 0x002C
+		char __pad1[24];
+		CCamera* m_pCamera; // 0x0048
 	};
 }

@@ -49,9 +49,4 @@ public:
 	bool WorldToScreen(const CVector3& World, CVector3& Out);
 
 	std::string CalculateWorldCompassHeading(float playerHeading);
-
-	/*D3DXVECTOR3& GetMatrixAxis(D3DXMATRIX matrix, UINT i)
-	{
-		return *(D3DXVECTOR3*)&matrix.m[i][0];
-	}*/
 };
