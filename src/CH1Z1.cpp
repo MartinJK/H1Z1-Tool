@@ -149,7 +149,8 @@ void CH1Z1::ParseEntities()
 			// Do not draw zombies to the entity list, just add a warning if they're close!
 			if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie
 				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Wolf
-				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie2)
+				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie2
+				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Bear)
 			{
 #if _ATTACK_ALERT
 				if (fDistance < 25.f)
