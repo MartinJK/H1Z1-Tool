@@ -3,10 +3,11 @@ H1Z1 Map / Tool modification
 
 ![preview](http://i.imgur.com/QdGSgfA.jpg)
 
-## Requirements in order to build on Window
+## Requirements in order to build on Windows
 - Visual Studio 2015 Preview or CTP
 - Visual Studio 2015 Redistributables/Runtime
 - x64 Windows 8/8.1/10 Preview
+- DirectX SDK 2010
 
 ## H1Z1Tool includes the following features
 ```
