@@ -26,8 +26,10 @@ misrepresented as being the original software.
 #include <Windows.h>
 #include <iostream>
 #include <include/D3Overlay.h>
+#include <include/Config.h>
 
 // CONFIGURATION
+#define PROGRAM						"H1Z1 Tool"
 #define _ATTACK_ALERT				1
 #define _DEBUG_ITEMS				0
 #define _3D_ENTITY_DISPLAY			1
@@ -38,6 +40,9 @@ misrepresented as being the original software.
 if(scopeobj._name != "Testuser" \
 && scopeobj._name != "Testuser2" \
 )
+
+std::string GetLanguageString(const std::string& str);
+std::string GetWorkingDirectory();
 
 /* SAMPLE:
 && scopeobject._name != "User you like" \

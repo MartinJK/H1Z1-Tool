@@ -76,6 +76,7 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)build\$(Configuration)\_compile\</IntDir>
     <OutDir>$(SolutionDir)build\$(Configuration)\</OutDir>
+    <TargetName>x64_$(ProjectName)_DEBUG</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -84,6 +85,7 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)build\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)build\$(Configuration)\_compile\</IntDir>
+    <TargetName>x64_$(ProjectName)_RELEASE</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -111,6 +113,9 @@
       <AdditionalDependencies>d3dx9.lib;d3d9.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%DXSDK_DIR%/Lib/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(TargetDir)$(TargetName)$(TargetExt)" "$(SolutionDir)dist\$(TargetName)$(TargetExt)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -146,23 +151,30 @@
       <AdditionalDependencies>d3dx9.lib;d3d9.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%DXSDK_DIR%/Lib/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(TargetDir)$(TargetName)$(TargetExt)" "$(SolutionDir)dist\$(TargetName)$(TargetExt)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include/targetver.h" />
     <ClInclude Include="include\CH1Z1.h" />
     <ClInclude Include="include\Common.h" />
+    <ClInclude Include="include\Config.h" />
     <ClInclude Include="include\D3Draw.h" />
     <ClInclude Include="include\D3Keys.h" />
     <ClInclude Include="include\D3Overlay.h" />
     <ClInclude Include="include\H1Z1Def.h" />
     <ClInclude Include="include\main.h" />
     <ClInclude Include="include\Vector3.h" />
+    <ClInclude Include="vendor\supereasyjson\json.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src/main.cpp" />
     <ClCompile Include="src\CH1Z1.cpp" />
+    <ClCompile Include="src\Config.cpp" />
     <ClCompile Include="src\D3Draw.cpp" />
     <ClCompile Include="src\D3Overlay.cpp" />
+    <ClCompile Include="vendor\supereasyjson\json.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

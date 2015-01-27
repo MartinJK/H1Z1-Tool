@@ -38,9 +38,11 @@ namespace H1Z1Def
 			MAX_ENTITY_TYPE = 256, // BYTE
 
 			// General game structures
-			CGame = 0x142CB5EA8,
-			CGraphic = 0x142CB5C08, // absolute
+			CGame = 0x142CB5EA8, // absolute/static
+			CGraphic = 0x142CB5C08, // absolute/static
+			CController = 0x143C88B10, // absolute /static
 			LocalPlayerOffset = 0x11D8, // CGame + Offset
+			LocalPlayerInfo = 0x143CB02F0, // absolute/static
 
 			// Functions
 			pfnWorldToScreen = 0x14030B490, // absolute
@@ -69,6 +71,10 @@ namespace H1Z1Def
 			CGraphicsOffset_Camera = 0x48, // CCamera
 			CGraphicsOffset_Camera__Matrix = 0x20, // CameraMatrix
 			CGraphicsOffset_D3DXMATRIX = 0x1A0, // D3DXMATRIX
+
+			// CController
+			CControllerOffset_Yaw = 0xE0, // float
+			CControllerOffset_Pitch = 0xE4, // float
 		};
 	};
 

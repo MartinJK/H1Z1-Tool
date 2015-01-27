@@ -29,11 +29,44 @@ int width = 1920;
 int height = 1080;
 RECT tSize;
 
-#define PROGRAM "H1Z1 Tool"
 HWND hWnd;
 HWND tWnd;
 
 CH1Z1* H1Z1 = nullptr;
+
+Config _system;
+LanguageConfig _lang;
+
+std::string GetLanguageString(const std::string& str)
+{
+	json::Value val = _lang.Object();
+	json::Value ob = val.ToObject()["H1Z1"];
+	if (ob.GetType() == json::ObjectVal)
+		if (ob.HasKey(str))
+			return ob[str].ToString();
+
+	return "Could not find language string: " + str;
+}
+
+std::string GetWorkingDirectory()
+{
+	wchar_t szExePath[MAX_PATH] = { 0 };
+	GetModuleFileNameW(GetModuleHandle(NULL), szExePath, MAX_PATH);
+
+	// Fix path in string
+	for (size_t i = wcslen(szExePath); i > 0; --i)
+	{
+		if (szExePath[i] == L'\\')
+		{
+			szExePath[i + 1] = L'\0';
+			break;
+		}
+	}
+
+	std::wstring widePath = szExePath;
+	std::string path = std::string(widePath.begin(), widePath.end());
+	return path;
+}
 
 bool EnableDebugPrivilege() 
 { 
@@ -176,6 +209,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	MSG Message;
+
+	// Before initalize H1Z1 Tool, read config files
+	_lang.Parse("en");
+	_system.Parse("\\data\\system.json");
+
 	DirectXInit(hWnd);
 	H1Z1 = new CH1Z1(proc);
 

@@ -38,14 +38,24 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	// Create basic ptr's
 	ReadH1Z1(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CGame), &this->CGame, sizeof(DWORD64), NULL);
 	ReadH1Z1(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CGraphic), &this->CGraphics, sizeof(DWORD64), NULL);
+	ReadH1Z1(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CController), &this->CController, sizeof(DWORD64), NULL);
 
 	ReadH1Z1(this->hH1Z1, (void*)(CGame + STATIC_CAST(H1Z1_DEF_LATEST::LocalPlayerOffset)), &this->LocalPlayer, sizeof(DWORD64), NULL);
 	ReadH1Z1(this->hH1Z1, (void*)(CPlayer + STATIC_CAST(H1Z1_DEF_LATEST::CPlayerOffset_Position)), &this->vecPlayerPos, sizeof(CVector3), NULL);
 
+	// Grab health
+	ReadH1Z1(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::LocalPlayerInfo), &this->LocalPlayerInfo, sizeof(DWORD64), NULL);
+
+#if 1 // EXPERIMENTAL HEALTH TEST
+	DWORD_PTR health;
+	ReadH1Z1(this->hH1Z1, (void*)(this->LocalPlayerInfo + 0xB8), &this->LocalPlayerInfo, sizeof(DWORD64), NULL);
+	ReadH1Z1(this->hH1Z1, (void*)(this->LocalPlayerInfo + 0xF0), &health, sizeof(DWORD64), NULL); // health table
+#endif
+
 	// Create player heading line
 	D3DXCreateLine(p_Device, &this->dxLine);
 	this->dxLine->SetWidth(2);
-	this->dxLine->SetPattern(0xffffffff);
+	this->dxLine->SetPattern(0xFFFFFF);
 	D3DXCreateSprite(p_Device, &dxSprite);
 
 	// Load & generate map texture

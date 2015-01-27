@@ -33,10 +33,12 @@ private:
 
 	DWORD_PTR CGame;
 	DWORD_PTR CGraphics;
+	DWORD_PTR CController;
 	DWORD_PTR CEntity;
 	DWORD_PTR CPlayer;
 
 	DWORD_PTR LocalPlayer;
+	DWORD_PTR LocalPlayerInfo;
 	CVector3 vecPlayerPos;
 
 	HANDLE hH1Z1; 
