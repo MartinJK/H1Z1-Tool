@@ -51,6 +51,7 @@ private:
 	int16 _screenHeight = 0;
 
 	Config* _system = nullptr;
+	ConfigArray* _entityColor = nullptr;
 	LanguageConfig* _lang = nullptr;
 
 	struct Configuration {

@@ -85,6 +85,45 @@ json::Object Config::Parse(const std::string& file)
 	return json::Object();
 }
 
+json::Array ConfigArray::Parse(const std::string& file)
+{
+	std::ifstream t(std::string(GetWorkingDirectory() + file).c_str());
+
+	if (t.fail())
+		return json::Array();
+
+	std::string str;
+
+	t.seekg(0, std::ios::end);
+	str.reserve(static_cast<size_t>(t.tellg()));
+	t.seekg(0, std::ios::beg);
+
+	str.assign((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+
+	json::Value value = json::Deserialize(str);
+
+	if (value.GetType() == json::ValueType::NULLVal)
+		return json::Array();
+	else if (value.GetType() != json::ValueType::ArrayVal)
+	{
+		FILE * _file = fopen(std::string(GetWorkingDirectory() + file + ".default").c_str(), "w");
+		if (_file)
+		{
+			fwrite("https://github.com/MartinJK/H1Z1Tool/data/entity_color.json.default", strlen("https://github.com/MartinJK/H1Z1Tool/data/entity_color.json.default"), sizeof(char), _file);
+
+			fclose(_file);
+		}
+
+		delete _file;
+	}
+	else
+	{
+		auto array = value.ToArray();
+		return array;
+	}
+	return json::Array();
+}
+
 json::Object LanguageConfig::Parse(const std::string& file)
 {
 	std::string f(std::string(GetWorkingDirectory() + "\\data\\localization\\" + file + ".language.json").c_str());

@@ -94,13 +94,45 @@ public:
 	virtual void SaveConfig();
 };
 
-class Config: public IConfig
+class IConfigArray
+{
+public:
+	json::Array _ref;
+	std::string _conffile;
+
+	IConfigArray() { }
+	IConfigArray(const std::string& file)
+	{
+		this->_conffile = file;
+	}
+
+	virtual json::Array& Object()
+	{
+		return this->_ref;
+	}
+
+	virtual std::string Serialize()
+	{
+		return json::Serialize(this->_ref);
+	}
+};
+
+class Config : public IConfig
 {
 public:
 	Config() : IConfig() { };
 	Config(const std::string& file) : IConfig(file) { this->_ref = this->Parse(file); };
-	
+
 	json::Object Parse(const std::string& file);
+};
+
+class ConfigArray : public IConfigArray
+{
+public:
+	ConfigArray() : IConfigArray() { };
+	ConfigArray(const std::string& file) : IConfigArray(file) { this->_ref = this->Parse(file); };
+
+	json::Array Parse(const std::string& file);
 };
 
 class LanguageConfig : public IConfig

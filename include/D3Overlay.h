@@ -37,6 +37,7 @@ extern D3DPRESENT_PARAMETERS p_Params;
 extern ID3DXLine* p_Line;
 extern ID3DXFont* pFontSmall;
 extern ID3DXFont* pFontSmaller;
+extern ID3DXFont* pFontMiddle;
 
 int DirectXInit(HWND hWnd);
 int Present_Begin();

@@ -31,10 +31,11 @@ D3DXVECTOR3& GetMatrixAxis(D3DXMATRIX matrix, UINT i)
 	return *(D3DXVECTOR3*)&matrix.m[i][0];
 }
 
-CH1Z1::CH1Z1(HANDLE proc) : 
+CH1Z1::CH1Z1(HANDLE proc) :
 	hH1Z1(proc),
 	_lang(new LanguageConfig("en")),
-	_system(new Config("data\\system.json"))
+	_system(new Config("data\\system.json")),
+	_entityColor(new ConfigArray("data\\entity_color.json"))
 {
 	if (!proc)
 		return;
@@ -90,6 +91,7 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	this->_config.__ATTACK_ALERT = this->_system->GetBoolean("sys.attack_alert");
 	this->_config.__ATTACK_NEAR_PLAYER_ALERT = this->_system->GetBoolean("sys.attack_player_alert");
 	this->_config.__MINIMAP = this->_system->GetBoolean("sys.minimap");
+
 }
 
 CH1Z1::~CH1Z1()
@@ -182,11 +184,11 @@ void CH1Z1::ParseEntities()
 						RECT desktop = this->GetDesktop();
 
 						char szMessage[128];
-						sprintf_s(szMessage, "!>> Attention: There\'s a %s close to you <<!", scopeobj._name);
+						sprintf_s(szMessage, ">> There\'s a %s close to you <<", scopeobj._name);
 
-						DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 255, 0, 0, pFontSmall);
+						DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 230, 230, 250, pFontSmall);
 
-						warningOffset += 15;
+						warningOffset += 20;
 
 						// Draw the zombie in 3D so the player will see him
 						CVector3 _vecScreen;
@@ -214,11 +216,11 @@ void CH1Z1::ParseEntities()
 							RECT desktop = this->GetDesktop();
 
 							char szMessage[128];
-							sprintf_s(szMessage, "!>> Attention: Player %s is close to you <<!", scopeobj._name);
+							sprintf_s(szMessage, ">> Player %s is close to you <<", scopeobj._name);
 
-							DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 255, 0, 0, pFontSmall);
+							DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 230, 230, 250, pFontSmall);
 
-							warningOffset += 15;
+							warningOffset += 20;
 
 							// Draw the zombie in 3D so the player will see him
 							CVector3 _vecScreen;
@@ -226,7 +228,7 @@ void CH1Z1::ParseEntities()
 							bool bResult = this->WorldToScreen(scopeobj._position, _vecScreen);
 							if (bResult)
 							{
-								sprintf_s(szString, ">> !%s! <<", scopeobj._name);
+								sprintf_s(szString, ">> %s <<", scopeobj._name);
 
 								DrawString(szString, _vecScreen.fX, _vecScreen.fY, 255, 50, 50, pFontSmall);
 							}
@@ -314,9 +316,9 @@ void CH1Z1::ParseEntities()
 					if (bIsOnScreen)
 					{
 						if (scopeobj._isPlayer)
-							sprintf_s(szString, "Player: %s  (%2.fm)", scopeobj._name, fDistance);
+							sprintf_s(szString, "Player: %s  (%0.fm)", scopeobj._name, fDistance);
 						else
-							sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDistance);
+							sprintf_s(szString, "%s  (%0.fm)", scopeobj._name, fDistance);
 
 						DrawString(szString, _vecScreen.fX, _vecScreen.fY, scopeobj.R, scopeobj.G, scopeobj.B, scopeobj._isPlayer ? pFontSmall : pFontSmaller);
 					}
@@ -330,7 +332,7 @@ void CH1Z1::ParseEntities()
 
 					if (bIsOnScreen)
 					{
-						sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDistance);
+						sprintf_s(szString, "%s  (%0.fm)", scopeobj._name, fDistance, scopeobj._type);
 						DrawString(szString, _vecScreen.fX, _vecScreen.fY, scopeobj.R, scopeobj.G, scopeobj.B, pFontSmaller);
 					}
 
@@ -373,12 +375,10 @@ void CH1Z1::ParseEntities()
 
 					if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Player)
 						FillRGB(fX, fY, 4, 4, 255, 0, 0, 255);
-					else if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_OffRoader)
-						FillRGB(fX, fY, 4, 4, 0, 0, 255, 255);
-					else if (scopeobj._isObject) // Lootable objects
-						FillRGB(fX, fY, 4, 4, 0, 255, 255, 255);
-					else // other entities
-						FillRGB(fX, fY, 4, 4, 0, 255, 0, 255);
+					else if (scopeobj.R == 240 && scopeobj.B == 240 && scopeobj.G == 250) // no needed entities on the map(not important!)
+						FillRGB(fX, fY, 4, 4, 0, 0, 255, 0); // alpha channel 0
+					else // Lootable objects
+						FillRGB(fX, fY, 4, 4, scopeobj.R, scopeobj.G, scopeobj.B, 255);
 				}
 			}
 		}
@@ -458,14 +458,20 @@ void CH1Z1::Process()
 		DrawString("W", fX + fWidth + 5, fY - (fHeight / 2) - 5, 240, 240, 250, pFontSmall);
 		DrawString("S", fX + (fWidth / 2) - 5, fY + 5, 240, 240, 250, pFontSmall);
 
+		char compass[8];
+		sprintf(compass, "%s", this->CalculateWorldCompassHeading(fHeading).c_str());
+		DrawString(compass, 20, _screenHeight-50, 255, 255, 255, pFontMiddle, 120);
+
 		// Draw player heading line
 #pragma message("FIX CONVERSION!")
+#if 0
 		D3DXVECTOR2 points[2];
 
 		points[0] = D3DXVECTOR2((fX + (fWidth / 2) - 1), (fY - (fHeight / 2) - 1));
 		points[1] = D3DXVECTOR2(fX + (100 * fHeading) , fY + (100 * fHeading));
 
 		this->dxLine->Draw(points, 2, 0xffffffff);
+#endif
 	}
 
 	// Prase entities
@@ -607,6 +613,12 @@ CVector3 CH1Z1::GetEntityDirection(DWORD64 entity)
 
 std::tuple<BYTE, BYTE, BYTE, BYTE> CH1Z1::GetEntityColor(BYTE entityType)
 {
+	return std::make_tuple(
+		255, 
+		this->_entityColor->Object()[entityType]["R"].ToInt(),
+		this->_entityColor->Object()[entityType]["B"].ToInt(),
+		this->_entityColor->Object()[entityType]["G"].ToInt());
+#if 0 
 	switch ((H1Z1Def::EntityTypes)entityType)
 	{
 		case H1Z1Def::EntityTypes::TYPE_OffRoader:
@@ -619,6 +631,7 @@ std::tuple<BYTE, BYTE, BYTE, BYTE> CH1Z1::GetEntityColor(BYTE entityType)
 	}
 
 	return std::make_tuple(255, 240, 240, 250);
+#endif
 }
 
 float CH1Z1::CalculateEntity3DModelOffset(BYTE entityType)

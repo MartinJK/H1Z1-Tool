@@ -46,8 +46,7 @@ void DrawLine(float fStartX, float fStartY, float fEndX, float fEndY, unsigned l
 void DrawRect(float fX, float fY, float fWidth, float fHeight, unsigned long ulColor);
 void DrawBox(float fLeft, float fTop, float fWidth, float fHeight, DWORD dwColour);
 
-
-int DrawString(char* String, int x, int y, int r, int g, int b, ID3DXFont* ifont);
+int DrawString(char* String, int x, int y, int r, int g, int b, ID3DXFont* ifont, int a = 255);
 int DrawShadowString(char* String, int x, int y, int r, int g, int b, ID3DXFont* ifont);
 
 struct D3DVERTEX

@@ -26,7 +26,7 @@ misrepresented as being the original software.
 #pragma warning(push)
 #pragma warning(disable:4267)
 
-int DrawString(char* String, int x, int y, int r, int g, int b, ID3DXFont* ifont)
+int DrawString(char* String, int x, int y, int r, int g, int b, ID3DXFont* ifont, int a)
 {
 	RECT ShadowPos;
 	ShadowPos.left = x + 1;
@@ -34,8 +34,8 @@ int DrawString(char* String, int x, int y, int r, int g, int b, ID3DXFont* ifont
 	RECT FontPos;
 	FontPos.left = x;
 	FontPos.top = y;
-	ifont->DrawTextA(0, String, strlen(String), &ShadowPos, DT_NOCLIP, D3DCOLOR_ARGB(255, r / 3, g / 3, b / 3));
-	ifont->DrawTextA(0, String, strlen(String), &FontPos, DT_NOCLIP, D3DCOLOR_ARGB(255, r, g, b));
+	//ifont->DrawTextA(0, String, strlen(String), &ShadowPos, DT_NOCLIP, D3DCOLOR_ARGB(255, r / 3, g / 3, b / 3));
+	ifont->DrawTextA(0, String, strlen(String), &FontPos, DT_NOCLIP, D3DCOLOR_ARGB(a, r, g, b));
 	return 0;
 }
 

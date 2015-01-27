@@ -727,6 +727,10 @@ static Value DeserializeArray(std::string& str, std::stack<StackDepthType>& dept
 		size_t i = 0;
 		for (; i < str.length(); i++)
 		{
+			auto result = str.find_first_of("\n", 0);
+			if (result == 1)
+				str = str.substr(2, str.length());
+
 			// If we get to an object or array, parse it:
 			if ((str[i] == '{') || (str[i] == '['))
 			{

@@ -30,6 +30,7 @@ D3DPRESENT_PARAMETERS p_Params;
 ID3DXLine* p_Line;
 ID3DXFont* pFontSmall = 0;
 ID3DXFont* pFontSmaller = 0;
+ID3DXFont* pFontMiddle = 0;
 
 // Imports from main.cpp
 extern int width;
@@ -58,8 +59,9 @@ int DirectXInit(HWND hWnd)
 	if (!p_Line)
 		D3DXCreateLine(p_Device, &p_Line);
 
-	D3DXCreateFont(p_Device, 18, 0, 0, 0, false, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH, L"Arial", &pFontSmall);
-	D3DXCreateFont(p_Device, 13, 0, 0, 0, false, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH, L"Arial", &pFontSmaller);
+	D3DXCreateFont(p_Device, 18, 0, 0, 2, false, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH, L"tahoma-bold", &pFontSmall);
+	D3DXCreateFont(p_Device, 14, 0, 0, 2, false, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH, L"tahoma-bold", &pFontSmaller);
+	D3DXCreateFont(p_Device, 40, 0, 0, 2, false, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH, L"tahoma-bold", &pFontMiddle);
 
 	return 0;
 }
