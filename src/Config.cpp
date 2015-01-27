@@ -33,9 +33,6 @@
 #include <fstream>
 #include <include/main.h>
 
-extern Config* SystemConfig;
-extern Config* LanguageConfig;
-
 void IConfig::SaveConfig()
 {
 	std::string strconf = this->Serialize();
@@ -47,8 +44,6 @@ void IConfig::SaveConfig()
 
 		fclose(file);
 	}
-	else
-		MessageBoxA(NULL, GetLanguageString("accessdeniedjson").c_str(), PROGRAM"Exception", MB_OK | MB_ICONEXCLAMATION);
 }
 
 json::Object Config::Parse(const std::string& file)
@@ -56,10 +51,7 @@ json::Object Config::Parse(const std::string& file)
 	std::ifstream t(std::string(GetWorkingDirectory() + file).c_str());
 
 	if (t.fail())
-	{
-		MessageBoxA(NULL, GetLanguageString("nojson").c_str(), PROGRAM"Exception", MB_OK|MB_ICONEXCLAMATION);
 		return json::Object();
-	}
 
 	std::string str;
 
@@ -72,10 +64,7 @@ json::Object Config::Parse(const std::string& file)
 	auto value = json::Deserialize(str);
 
 	if (value.GetType() == json::ValueType::NULLVal)
-	{
-		MessageBoxA(NULL, GetLanguageString("failjson").c_str(), PROGRAM"Exception", MB_OK | MB_ICONEXCLAMATION);
 		return json::Object();
-	}
 	else if (value.GetType() != json::ValueType::ObjectVal)
 	{
 		FILE * _file = fopen(std::string(GetWorkingDirectory() + file + ".default").c_str(), "w");
@@ -85,13 +74,8 @@ json::Object Config::Parse(const std::string& file)
 
 			fclose(_file);
 		}
-		else
-			MessageBoxA(NULL, GetLanguageString("accessdeniedjson").c_str(), PROGRAM"Exception", MB_OK | MB_ICONEXCLAMATION);
 
 		delete _file;
-
-		MessageBoxA(NULL, GetLanguageString("wrongjson").c_str(), PROGRAM"Exception", MB_OK | MB_ICONEXCLAMATION);
-		throw std::runtime_error(GetLanguageString("wrongjson").c_str());
 	}
 	else
 	{
@@ -107,10 +91,7 @@ json::Object LanguageConfig::Parse(const std::string& file)
 	std::ifstream t(f);
 
 	if (t.fail())
-	{
-		MessageBoxA(NULL, GetLanguageString("nojson").c_str(), PROGRAM"Exception", MB_OK | MB_ICONEXCLAMATION);
 		return json::Object();
-	}
 
 	std::string str;
 
@@ -123,15 +104,9 @@ json::Object LanguageConfig::Parse(const std::string& file)
 	auto value = json::Deserialize(str);
 
 	if (value.GetType() == json::ValueType::NULLVal)
-	{
-		MessageBoxA(NULL, "Failed to read json file!", PROGRAM"Exception", MB_OK | MB_ICONEXCLAMATION);
 		return json::Object();
-	}
 	else if (value.GetType() != json::ValueType::ObjectVal)
-	{
-		MessageBoxA(NULL, "Your languagefile file seems to be in the wrong format. See documentation how the system.json should look like!", PROGRAM"Exception", MB_OK | MB_ICONEXCLAMATION);
 		return json::Object();
-	}
 	else
 	{
 		auto object = value.ToObject();

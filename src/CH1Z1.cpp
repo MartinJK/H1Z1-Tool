@@ -18,6 +18,8 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 \*****************************************************************************/
+// D3DX is outdated, use other routines!
+
 #include <include/CH1Z1.h>
 #include <include/D3Keys.h>
 #include <include/H1Z1Def.h>
@@ -30,7 +32,9 @@ D3DXVECTOR3& GetMatrixAxis(D3DXMATRIX matrix, UINT i)
 }
 
 CH1Z1::CH1Z1(HANDLE proc) : 
-	hH1Z1(proc)
+	hH1Z1(proc),
+	_lang(new LanguageConfig("en")),
+	_system(new Config("data\\system.json"))
 {
 	if (!proc)
 		return;
@@ -46,7 +50,7 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	// Grab health
 	ReadH1Z1(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::LocalPlayerInfo), &this->LocalPlayerInfo, sizeof(DWORD64), NULL);
 
-#if 1 // EXPERIMENTAL HEALTH TEST
+#if 0 // EXPERIMENTAL HEALTH TEST
 	DWORD_PTR health;
 	ReadH1Z1(this->hH1Z1, (void*)(this->LocalPlayerInfo + 0xB8), &this->LocalPlayerInfo, sizeof(DWORD64), NULL);
 	ReadH1Z1(this->hH1Z1, (void*)(this->LocalPlayerInfo + 0xF0), &health, sizeof(DWORD64), NULL); // health table
@@ -74,11 +78,18 @@ CH1Z1::CH1Z1(HANDLE proc) :
 
 	std::wstring loc = szExePath;
 	loc.append(L"map.png");
-
 	D3DXCreateTextureFromFile(p_Device, loc.c_str(), &dxTexture);
 
+	// Read game screenwidth/height
 	ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenWidth)), &this->_screenWidth, sizeof(this->_screenWidth), NULL);
 	ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenHeight)), &this->_screenHeight, sizeof(this->_screenHeight), NULL);
+
+	// Read configuration
+	this->_config.__DEBUG_ITEMS = this->_system->GetBoolean("sys.debug_items");
+	this->_config.__3D_ENTITY_DISPLAY = this->_system->GetBoolean("sys.3d_display");
+	this->_config.__ATTACK_ALERT = this->_system->GetBoolean("sys.attack_alert");
+	this->_config.__ATTACK_NEAR_PLAYER_ALERT = this->_system->GetBoolean("sys.attack_player_alert");
+	this->_config.__MINIMAP = this->_system->GetBoolean("sys.minimap");
 }
 
 CH1Z1::~CH1Z1()
@@ -98,15 +109,17 @@ CH1Z1::~CH1Z1()
 
 void CH1Z1::ParseEntities()
 {
-#if _DEBUG_ITEMS
-	DrawString("Entities nearby(300m)", 15, 120, 240, 240, 250, pFontSmall);
-	DrawString("Players nearby(300m)", 515, 120, 240, 240, 250, pFontSmall);
-	DrawString("Objects nearby(300m)", 915, 120, 240, 240, 250, pFontSmall);
+	if (this->_config.__DEBUG_ITEMS)
+	{
+		DrawString("Entities nearby(300m)", 15, 120, 240, 240, 250, pFontSmall);
+		DrawString("Players nearby(300m)", 515, 120, 240, 240, 250, pFontSmall);
+		DrawString("Objects nearby(300m)", 915, 120, 240, 240, 250, pFontSmall);
+	}
 
 	int entityOffset = 150;
 	int playerOffset = 150;
 	int objectOffset = 150;
-#endif
+	
 	int warningOffset = 15;
 
 	DWORD entityCount;
@@ -162,44 +175,14 @@ void CH1Z1::ParseEntities()
 				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie2
 				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Bear)
 			{
-#if _ATTACK_ALERT
-				if (fDistance < 25.f)
+				if (this->_config.__ATTACK_ALERT)
 				{
-					RECT desktop = this->GetDesktop();
-
-					char szMessage[128];
-					sprintf_s(szMessage, "!>> Attention: There\'s a %s close to you <<!", scopeobj._name);
-
-					DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 255, 0, 0, pFontSmall);
-
-					warningOffset += 15;
-
-					// Draw the zombie in 3D so the player will see him
-					CVector3 _vecScreen;
-					scopeobj._position.fY += this->CalculateEntity3DModelOffset(scopeobj._type);
-					bool bResult = this->WorldToScreen(scopeobj._position, _vecScreen);
-					if (bResult)
-					{
-						sprintf_s(szString, ">> -%s- <<", scopeobj._name);
-
-						DrawString(szString, _vecScreen.fX, _vecScreen.fY, 255, 50, 50, pFontSmall);
-					}
-				}
-#endif
-				continue;
-			}
-
-#if  _ATTACK_NEAR_PLAYER_ALERT
-			if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Player)
-			{
-				if (fDistance < 80.f)
-				{
-					_IGNORE_PLAYERS
+					if (fDistance < 25.f)
 					{
 						RECT desktop = this->GetDesktop();
 
 						char szMessage[128];
-						sprintf_s(szMessage, "!>> Attention: Player %s is close to you <<!", scopeobj._name);
+						sprintf_s(szMessage, "!>> Attention: There\'s a %s close to you <<!", scopeobj._name);
 
 						DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 255, 0, 0, pFontSmall);
 
@@ -211,14 +194,46 @@ void CH1Z1::ParseEntities()
 						bool bResult = this->WorldToScreen(scopeobj._position, _vecScreen);
 						if (bResult)
 						{
-							sprintf_s(szString, ">> !%s! <<", scopeobj._name);
+							sprintf_s(szString, ">> -%s- <<", scopeobj._name);
 
 							DrawString(szString, _vecScreen.fX, _vecScreen.fY, 255, 50, 50, pFontSmall);
 						}
 					}
 				}
+				continue;
 			}
-#endif
+
+			if (this->_config.__ATTACK_NEAR_PLAYER_ALERT)
+			{
+				if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Player)
+				{
+					if (fDistance < 80.f)
+					{
+						_IGNORE_PLAYERS
+						{
+							RECT desktop = this->GetDesktop();
+
+							char szMessage[128];
+							sprintf_s(szMessage, "!>> Attention: Player %s is close to you <<!", scopeobj._name);
+
+							DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 255, 0, 0, pFontSmall);
+
+							warningOffset += 15;
+
+							// Draw the zombie in 3D so the player will see him
+							CVector3 _vecScreen;
+							scopeobj._position.fY += this->CalculateEntity3DModelOffset(scopeobj._type);
+							bool bResult = this->WorldToScreen(scopeobj._position, _vecScreen);
+							if (bResult)
+							{
+								sprintf_s(szString, ">> !%s! <<", scopeobj._name);
+
+								DrawString(szString, _vecScreen.fX, _vecScreen.fY, 255, 50, 50, pFontSmall);
+							}
+						}
+					}
+				}
+			}
 
 			// Sort out types
 			{
@@ -241,128 +256,131 @@ void CH1Z1::ParseEntities()
 					scopeobj._isEntity = true;
 			}
 
-#if _DEBUG_ITEMS
-			// Draw to list
-			if (scopeobj._isObject)
+			if (this->_config.__DEBUG_ITEMS)
 			{
-				sprintf_s(szString, "- %s, Type[%d], Position[%.2f, %.2f, %.2f], Distance[%.2fm]",
-					scopeobj._name,
-					scopeobj._type,
-					scopeobj._objectPosition.fX,
-					scopeobj._objectPosition.fY,
-					scopeobj._objectPosition.fZ,
-					fDistance);
-
-				DrawString(szString, 915, objectOffset, 240, 240, 250, pFontSmaller);
-				objectOffset += 15;
-			}
-
-			if (scopeobj._isPlayer)
-			{
-				sprintf_s(szString, "- %s, Position[%.2f, %.2f, %.2f], Distance[%.1fm]",
-					scopeobj._name,
-					scopeobj._position.fX,
-					scopeobj._position.fY,
-					scopeobj._position.fZ,
-					fDistance);
-
-				DrawString(szString, 515, playerOffset, 240, 240, 250, pFontSmaller);
-				playerOffset += 15;
-			}
-
-			if (scopeobj._isEntity)
-			{
-				sprintf_s(szString, "- %s, Type[%d], Position[%.2f, %.2f, %.2f], Distance[%.2fm]",
-					scopeobj._name,
-					scopeobj._type,
-					scopeobj._position.fX,
-					scopeobj._position.fY,
-					scopeobj._position.fZ,
-					fDistance);
-
-				DrawString(szString, 15, entityOffset, 240, 240, 250, pFontSmaller);
-				entityOffset += 15;
-			}
-#endif
-
-#if _3D_ENTITY_DISPLAY
-			// Check if he's a player so we draw a big text with a hint
-			if (!scopeobj._isObject) // player & entities
-			{
-				// Draw it on the screen(World 2 Screen)
-				CVector3 _vecScreen;
-				scopeobj._position.fY += this->CalculateEntity3DModelOffset(scopeobj._type);
-				bool bIsOnScreen = this->WorldToScreen(scopeobj._position, _vecScreen);
-				
-				if (bIsOnScreen)
+				// Draw to list
+				if (scopeobj._isObject)
 				{
-					if (scopeobj._isPlayer)
-						sprintf_s(szString, "Player: %s  (%2.fm)", scopeobj._name, fDistance);
-					else
+					sprintf_s(szString, "- %s, Type[%d], Position[%.2f, %.2f, %.2f], Distance[%.2fm]",
+						scopeobj._name,
+						scopeobj._type,
+						scopeobj._objectPosition.fX,
+						scopeobj._objectPosition.fY,
+						scopeobj._objectPosition.fZ,
+						fDistance);
+
+					DrawString(szString, 915, objectOffset, 240, 240, 250, pFontSmaller);
+					objectOffset += 15;
+				}
+
+				if (scopeobj._isPlayer)
+				{
+					sprintf_s(szString, "- %s, Position[%.2f, %.2f, %.2f], Distance[%.1fm]",
+						scopeobj._name,
+						scopeobj._position.fX,
+						scopeobj._position.fY,
+						scopeobj._position.fZ,
+						fDistance);
+
+					DrawString(szString, 515, playerOffset, 240, 240, 250, pFontSmaller);
+					playerOffset += 15;
+				}
+
+				if (scopeobj._isEntity)
+				{
+					sprintf_s(szString, "- %s, Type[%d], Position[%.2f, %.2f, %.2f], Distance[%.2fm]",
+						scopeobj._name,
+						scopeobj._type,
+						scopeobj._position.fX,
+						scopeobj._position.fY,
+						scopeobj._position.fZ,
+						fDistance);
+
+					DrawString(szString, 15, entityOffset, 240, 240, 250, pFontSmaller);
+					entityOffset += 15;
+				}
+			}
+
+			if (this->_config.__3D_ENTITY_DISPLAY)
+			{
+				// Check if he's a player so we draw a big text with a hint
+				if (!scopeobj._isObject) // player & entities
+				{
+					// Draw it on the screen(World 2 Screen)
+					CVector3 _vecScreen;
+					scopeobj._position.fY += this->CalculateEntity3DModelOffset(scopeobj._type);
+					bool bIsOnScreen = this->WorldToScreen(scopeobj._position, _vecScreen);
+
+					if (bIsOnScreen)
+					{
+						if (scopeobj._isPlayer)
+							sprintf_s(szString, "Player: %s  (%2.fm)", scopeobj._name, fDistance);
+						else
+							sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDistance);
+
+						DrawString(szString, _vecScreen.fX, _vecScreen.fY, scopeobj.R, scopeobj.G, scopeobj.B, scopeobj._isPlayer ? pFontSmall : pFontSmaller);
+					}
+				}
+				else // objects
+				{
+					// Draw it on the screen(World 2 Screen)
+					CVector3 _vecScreen;
+					scopeobj._objectPosition.fY += this->CalculateEntity3DModelOffset(scopeobj._type);
+					bool bIsOnScreen = this->WorldToScreen(scopeobj._objectPosition, _vecScreen);
+
+					if (bIsOnScreen)
+					{
 						sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDistance);
+						DrawString(szString, _vecScreen.fX, _vecScreen.fY, scopeobj.R, scopeobj.G, scopeobj.B, pFontSmaller);
+					}
 
-					DrawString(szString, _vecScreen.fX, _vecScreen.fY, scopeobj.R, scopeobj.G, scopeobj.B, scopeobj._isPlayer ? pFontSmall : pFontSmaller);
 				}
 			}
-			else // objects
+
+			if (this->_config.__MINIMAP)
 			{
-				// Draw it on the screen(World 2 Screen)
-				CVector3 _vecScreen;
-				scopeobj._objectPosition.fY += this->CalculateEntity3DModelOffset(scopeobj._type);
-				bool bIsOnScreen = this->WorldToScreen(scopeobj._objectPosition, _vecScreen);
+				// Draw to minimap
+				RECT desktop = GetDesktop();
 
-				if (bIsOnScreen)
-				{
-					sprintf_s(szString, "%s  (%2.fm)", scopeobj._name, fDistance);
-					DrawString(szString, _vecScreen.fX, _vecScreen.fY, scopeobj.R, scopeobj.G, scopeobj.B, pFontSmaller);
-				}
+				auto fWidth = 200;
+				auto fHeight = 200;
+				auto fX = (desktop.right - 20 - (fWidth / 2));
+				auto fY = (desktop.bottom - 75 - (fHeight / 2));
 
-			}
-#endif
-
-#if _MINIMAP
-			// Draw to minimap
-			RECT desktop = GetDesktop();
-
-			auto fWidth = 200;
-			auto fHeight = 200;
-			auto fX = (desktop.right - 20 - (fWidth/2));
-			auto fY = (desktop.bottom - 75 - (fHeight/2));
-
-			// Check if we're a lootable thing or whatever else
-			CVector3 diff;
-			if (scopeobj._isObject) // Parse objects
-				diff = CVector3(scopeobj._objectPosition.fX - this->vecPlayerPos.fX,
+				// Check if we're a lootable thing or whatever else
+				CVector3 diff;
+				if (scopeobj._isObject) // Parse objects
+					diff = CVector3(scopeobj._objectPosition.fX - this->vecPlayerPos.fX,
 					scopeobj._objectPosition.fY - this->vecPlayerPos.fY,
 					scopeobj._objectPosition.fZ - this->vecPlayerPos.fZ);
-			else // Parse entities, players etc.
-				diff = CVector3(scopeobj._position.fX - this->vecPlayerPos.fX,
+				else // Parse entities, players etc.
+					diff = CVector3(scopeobj._position.fX - this->vecPlayerPos.fX,
 					scopeobj._position.fY - this->vecPlayerPos.fY,
 					scopeobj._position.fZ - this->vecPlayerPos.fZ);
 
-			// Check if we would be out of the minimap range
-			if (diff.Length() <= 200)
-			{
-				if(diff.fX >= 0)
-					fX += diff.fX > 95 ? 95 : diff.fX;
-				else
-					fX += diff.fX < -95 ? -95 : diff.fX;
+				// Check if we would be out of the minimap range
+				if (diff.Length() <= 200)
+				{
+					if (diff.fX >= 0)
+						fX += diff.fX > 95 ? 95 : diff.fX;
+					else
+						fX += diff.fX < -95 ? -95 : diff.fX;
 
-				if (diff.fY >= 0)
-					fY += diff.fY > 95 ? 95 : diff.fY;
-				else
-					fY += diff.fY < -95 ? -95 : diff.fY;
+					if (diff.fY >= 0)
+						fY += diff.fY > 95 ? 95 : diff.fY;
+					else
+						fY += diff.fY < -95 ? -95 : diff.fY;
 
-				if(scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Player)
-					FillRGB(fX, fY, 4, 4, 255, 0, 0, 255);
-				else if(scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_OffRoader)
-					FillRGB(fX, fY, 4, 4, 0, 0, 255, 255);
-				else if(scopeobj._isObject) // Lootable objects
-					FillRGB(fX, fY, 4, 4, 0, 255, 255, 255);
-				else // other entities
-					FillRGB(fX, fY, 4, 4, 0, 255, 0, 255);
+					if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Player)
+						FillRGB(fX, fY, 4, 4, 255, 0, 0, 255);
+					else if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_OffRoader)
+						FillRGB(fX, fY, 4, 4, 0, 0, 255, 255);
+					else if (scopeobj._isObject) // Lootable objects
+						FillRGB(fX, fY, 4, 4, 0, 255, 255, 255);
+					else // other entities
+						FillRGB(fX, fY, 4, 4, 0, 255, 0, 255);
+				}
 			}
-#endif
 		}
 		else
 			return;
@@ -407,7 +425,8 @@ void CH1Z1::Process()
 		ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenHeight)), &this->_screenHeight, sizeof(this->_screenHeight), NULL);
 	}
 
-#if _MINIMAP
+	
+	if (this->_config.__MINIMAP)
 	{
 		// Minimap
 		RECT desktop = this->GetDesktop();
@@ -448,7 +467,6 @@ void CH1Z1::Process()
 
 		this->dxLine->Draw(points, 2, 0xffffffff);
 	}
-#endif
 
 	// Prase entities
 	this->ParseEntities();

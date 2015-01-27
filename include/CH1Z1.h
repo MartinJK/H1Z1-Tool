@@ -50,6 +50,17 @@ private:
 	int16 _screenWidth = 0;
 	int16 _screenHeight = 0;
 
+	Config* _system = nullptr;
+	LanguageConfig* _lang = nullptr;
+
+	struct Configuration {
+		bool __ATTACK_ALERT = false;
+		bool __DEBUG_ITEMS = false;
+		bool __3D_ENTITY_DISPLAY = false;
+		bool __MINIMAP = false;
+		bool __ATTACK_NEAR_PLAYER_ALERT = false;
+	} _config;
+
 public:
 	CH1Z1(HANDLE proc);
 	~CH1Z1();

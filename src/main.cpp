@@ -34,12 +34,9 @@ HWND tWnd;
 
 CH1Z1* H1Z1 = nullptr;
 
-Config _system;
-LanguageConfig _lang;
-
-std::string GetLanguageString(const std::string& str)
+std::string GetLanguageString(LanguageConfig lang, const std::string& str)
 {
-	json::Value val = _lang.Object();
+	json::Value val = lang.Object();
 	json::Value ob = val.ToObject()["H1Z1"];
 	if (ob.GetType() == json::ObjectVal)
 		if (ob.HasKey(str))
@@ -114,7 +111,8 @@ LRESULT CALLBACK WinProc(HWND _hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 			if(Present_Begin())
 				break;
 
-			H1Z1->Process();
+			if(H1Z1 != nullptr)
+				H1Z1->Process();
 
 			Present_End();
 
@@ -209,11 +207,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	MSG Message;
-
-	// Before initalize H1Z1 Tool, read config files
-	_lang.Parse("en");
-	_system.Parse("\\data\\system.json");
-
 	DirectXInit(hWnd);
 	H1Z1 = new CH1Z1(proc);
 

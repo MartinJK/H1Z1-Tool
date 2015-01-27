@@ -41,7 +41,7 @@ if(scopeobj._name != "Testuser" \
 && scopeobj._name != "Testuser2" \
 )
 
-std::string GetLanguageString(const std::string& str);
+std::string GetLanguageString(LanguageConfig lang, const std::string& str);
 std::string GetWorkingDirectory();
 
 /* SAMPLE:
