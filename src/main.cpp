@@ -141,7 +141,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	std::thread td([&] {
 		for (;;)
 		{
-			tWnd = FindWindow(0, TEXT(H1Z1_WINDOW));
+			tWnd = FindWindowExA(NULL, NULL, TARGET_EXECUTABLE_CLASS, NULL);
 			if (tWnd)
 			{
 				GetWindowRect(tWnd, &tSize);
@@ -183,7 +183,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	if (!RegisterClassEx(&wClass))
 		exit(1);
 
-	tWnd = FindWindow(0, TEXT(H1Z1_WINDOW));
+	tWnd = FindWindowExA(NULL, NULL, TARGET_EXECUTABLE_CLASS, NULL);
 	if (tWnd)
 	{
 		GetWindowRect(tWnd, &tSize);
@@ -196,7 +196,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	DWORD dwID;
-	HWND sa = FindWindowA(NULL, H1Z1_WINDOW);
+	HWND sa = FindWindowExA(NULL, NULL, TARGET_EXECUTABLE_CLASS, NULL);
 	GetWindowThreadProcessId(sa, &dwID);
 	proc = OpenProcess(PROCESS_ALL_ACCESS, false, dwID);
 	

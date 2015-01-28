@@ -21,9 +21,12 @@ misrepresented as being the original software.
 #pragma once
 #include <d3dx9math.h>
 
-#define H1Z1_VERSION "0.33.1.34511"
+#define H1Z1_VERSION "v0.34.1.34834"
+/*
+"0.33.1.34511"
+*/
 #define H1Z1_WINDOW "H1Z1 v" H1Z1_VERSION "  **RELEASE**"
-#define H1Z1_DEF_LATEST H1Z1Def::versions::v033134511
+#define H1Z1_DEF_LATEST H1Z1Def::versions::v034134834
 
 #define STATIC_CAST(address) static_cast<DWORD>(address)
 
@@ -32,6 +35,50 @@ namespace H1Z1Def
 	namespace versions
 	{
 #pragma message("!--> USE PATTERN - NO STATIC OFFSETS! [<include/H1Z1Def.h>]")
+		enum class v034134834 : UINT64
+		{
+			IMAGEIMAGEBASE = 0x14000000,
+			MAX_ENTITY_TYPE = 256, // BYTE
+
+			// General game structures
+			CGame = 0x142CB0E88, // absolute/static
+			CGraphic = 0x142CB0BE8, // absolute/static
+			CController = 0x143C83AF0, // absolute /static
+			LocalPlayerOffset = 0x11D8, // CGame + Offset
+			LocalPlayerInfo = 0x143CAB2D0, // absolute/static
+
+			// Functions
+			pfnWorldToScreen = 0x14030B4B0, // absolute
+
+			// Entities
+			EntityTableOffset = 0x350,
+			EntityPoolCount = 0x1020, // int32/BYTE
+
+			// Player
+			CPlayerOffset_Position = 0x1D0, // Vector3
+			CPlayerOffset_Heading = 0x1F0, // float
+			CPlayerOffset_Pitch = 0x1F4, // float
+			CPlayerOffset_State = 0x4F8, // BYTE 
+			CPlayerOffset_Velocity = 0x0200, // Vector3
+			CPlayerOffset_WorldState = 0x0028, // BYTE
+
+			// Entity
+			CEntityOffset_Name = 0x3B8, // char [64]
+			CEntityOffset_Position = 0x1D0, // Vector3
+			CEntityOffset_Type = 0x500, // int32/BYTE
+			CEntityObjectOffset_Position = 0x1330, // Vector3
+
+			// Graphics
+			CGraphicsOffset_ScreenWidth = 0x28, // int32
+			CGraphicsOffset_ScreenHeight = 0x2C, // int32
+			CGraphicsOffset_Camera = 0x48, // CCamera
+			CGraphicsOffset_Camera__Matrix = 0x20, // CameraMatrix
+			CGraphicsOffset_D3DXMATRIX = 0x1A0, // D3DXMATRIX
+
+			// CController
+			CControllerOffset_Yaw = 0xE0, // float
+			CControllerOffset_Pitch = 0xE4, // floatBASE = 0x14000000,
+		};
 		enum class v033134511 : UINT64
 		{
 			IMAGEBASE = 0x14000000,

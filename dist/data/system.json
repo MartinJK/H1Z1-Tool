@@ -1,5 +1,5 @@
 {
-"sys.minimap":false,
+"sys.minimap":true,
 "sys.debug_items":false,
 "sys.attack_alert":true,
 "sys.attack_player_alert":true,

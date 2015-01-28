@@ -30,6 +30,7 @@ misrepresented as being the original software.
 
 // CONFIGURATION
 #define PROGRAM						"H1Z1 Tool"
+#define TARGET_EXECUTABLE_CLASS		"H1Z1 PlayClient (Live)"
 #define _ATTACK_ALERT				1
 #define _DEBUG_ITEMS				0
 #define _3D_ENTITY_DISPLAY			1
@@ -37,8 +38,7 @@ misrepresented as being the original software.
 
 #define _ATTACK_NEAR_PLAYER_ALERT	1
 #define _IGNORE_PLAYERS \
-if(scopeobj._name != "Testuser" \
-&& scopeobj._name != "Testuser2" \
+if(strcmp(scopeobj._name,"Silnexx") != 0 \
 )
 
 std::string GetLanguageString(LanguageConfig lang, const std::string& str);
