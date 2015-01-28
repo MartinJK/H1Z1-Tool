@@ -3,11 +3,14 @@ H1Z1 Map / Tool modification
 
 ![preview](http://i.imgur.com/QdGSgfA.jpg)
 
+![preview](http://i.imgur.com/eyPFodi.jpg)
+
 ## Requirements in order to build on Windows
 - Visual Studio 2015 Preview or CTP
 - Visual Studio 2015 Redistributables/Runtime
 - x64 Windows 8/8.1/10 Preview
 - DirectX SDK 2010
+- (If you're trying to run it with visual studio in DEBUG/RELEASE mode, make sure to copy the data folder (dist/data) to (build/DEBUG , build/RELEASE))
 
 ## H1Z1Tool includes the following features
 ```
@@ -16,15 +19,15 @@ H1Z1 Map / Tool modification
 - Heading including a compass
 - Distance to Pleasent Valley
 - General Minimap
+- Zombie/Player attention/warning if they have focused you/are attacking you
+- World items & entity (3D) to 2D screen conversion
 ```
 **UPCOMING**
 - Minimap(with texture overlay) + Fullscreen Map
 - Navigation system which leeds you with an arrow on your wanted direction
 - Lightning improvements(night & day) + longer day cycles
 - Spawn protection so bugged objects won't kill you
-- Zombie/Player attention/warning if they have focused you/are attacking you
 - Automatic computed direction runner(relax & lay back while the game runs to your direction itself)
-- World items & entity (3D) to 2D screen conversion
 - Other player loot ability & preview (see what loot other players have)
 - Timers to show you when you have to eat/drink again
 - Vehicle stability improvements(including physics)
