@@ -35,8 +35,11 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	hH1Z1(proc),
 	_lang(new LanguageConfig("en")),
 	_system(new Config("data\\system.json")),
-	_entityColor(new ConfigArray("data\\entity_color.json"))
+	_entityColor(new ConfigArray("data\\entity_color.json")),
+	_entity3DDisplay(new ConfigArray("data\\entity_3d.json"))
 {
+	this->_instance = this;
+
 	if (!proc)
 		return;
 
@@ -92,6 +95,10 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	this->_config.__ATTACK_NEAR_PLAYER_ALERT = this->_system->GetBoolean("sys.attack_player_alert");
 	this->_config.__MINIMAP = this->_system->GetBoolean("sys.minimap");
 	this->_config.__COMPASS = this->_system->GetBoolean("sys.compass");
+
+	// Generate sprites
+	for (uint8 i = 0; i < 255; i++)
+		this->_itemSprites[i] = new CItemSprite(std::string( "data\\blips\\" + this->_entity3DDisplay->Object()[i]["src"].ToString()));
 }
 
 CH1Z1::~CH1Z1()
@@ -161,7 +168,8 @@ void CH1Z1::ParseEntities()
 			|| scopeobj._name == ""
 			|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_AggressiveItems
 			|| scopeobj._type == 55 /*unkown obj*/
-			|| scopeobj._type == 44 /*wood arrow*/)
+			|| scopeobj._type == 44 /*wood arrow*/
+			|| scopeobj._type == 79 /*designed placed door*/)
 			continue;
 
 		// Check if the entity type is in a valid range
@@ -303,7 +311,8 @@ void CH1Z1::ParseEntities()
 				}
 			}
 
-			if (this->_config.__3D_ENTITY_DISPLAY)
+			if (this->_config.__3D_ENTITY_DISPLAY &&
+				this->_entity3DDisplay->Object()[scopeobj._type]["3DLabel"].ToBool())
 			{
 				// Check if he's a player so we draw a big text with a hint
 				if (!scopeobj._isObject) // player & entities
@@ -316,15 +325,35 @@ void CH1Z1::ParseEntities()
 					if (bIsOnScreen)
 					{
 						if (scopeobj._isPlayer)
+						{
 							sprintf_s(szString, "Player: %s  (%0.fm)", scopeobj._name, fDistance);
+
+#if 0 // PLAYER BOX TEST
+							float _fPlayerHeight = _screenHeight;
+							float _fPlayerWidth = _screenWidth * 0.20;
+
+							float _fX = _vecScreen.fX;
+							float _fY = _vecScreen.fY;
+							float _fYOffset = _fY + (500 / (fDistance));
+
+							float _fHeight = _fPlayerHeight / (fDistance);
+							float _fWidth = _fPlayerWidth / (fDistance);
+
+							FillRGB(_fX, _fYOffset, 1, _fHeight, 255, 0, 0, 255);
+							FillRGB(_fX + _fWidth, _fYOffset, 1, _fHeight, 255, 0, 0, 255);
+
+							// Vertical
+							FillRGB(_fX, _fYOffset, _fWidth, 1, 255, 0, 0, 255);
+							FillRGB(_fX, _fYOffset + _fHeight, _fWidth, 1, 255, 0, 0, 255);
+#endif
+						}
 						else
 							sprintf_s(szString, "%s  (%0.fm)", scopeobj._name, fDistance);
-
-						DrawString(szString, _vecScreen.fX, _vecScreen.fY, scopeobj.R, scopeobj.G, scopeobj.B, scopeobj._isPlayer ? pFontSmall : pFontSmaller);
+							DrawString(szString, _vecScreen.fX, _vecScreen.fY, scopeobj.R, scopeobj.G, scopeobj.B, scopeobj._isPlayer ? pFontSmall : pFontSmaller);
 					}
 				}
 				else // objects
-				{
+				{ 
 					// Draw it on the screen(World 2 Screen)
 					CVector3 _vecScreen;
 					scopeobj._objectPosition.fY += this->CalculateEntity3DModelOffset(scopeobj._type);
@@ -332,12 +361,18 @@ void CH1Z1::ParseEntities()
 
 					if (bIsOnScreen)
 					{
-						sprintf_s(szString, "%s  (%0.fm)", scopeobj._name, fDistance, scopeobj._type);
+#ifdef _DEBUG
+						sprintf_s(szString, "%s  (%0.fm) - %d", scopeobj._name, fDistance, scopeobj._type, scopeobj._type);
+#else
+						sprintf_s(szString, "%s  (%0.fm)", scopeobj._name, fDistance, scopeobj._type, scopeobj._type);
+#endif
 						DrawString(szString, _vecScreen.fX, _vecScreen.fY, scopeobj.R, scopeobj.G, scopeobj.B, pFontSmaller);
 					}
-
 				}
 			}
+
+			if (this->_entity3DDisplay->Object()[scopeobj._type]["3DSprite"].ToBool())
+				this->_itemSprites[scopeobj._type]->Draw(scopeobj._isObject ? scopeobj._objectPosition : scopeobj._position, vecPlayerPos);
 
 			if (this->_config.__MINIMAP)
 			{
@@ -363,19 +398,23 @@ void CH1Z1::ParseEntities()
 				// Check if we would be out of the minimap range
 				if (diff.Length() <= 200)
 				{
-					if (diff.fX >= 0)
-						fX += diff.fX > 95 ? 95 : diff.fX;
-					else
-						fX += diff.fX < -95 ? -95 : diff.fX;
+					diff.fX = diff.fX * -1;
+					diff.fY = diff.fY * -1;
+					diff.fZ = diff.fZ * -1;
 
-					if (diff.fY >= 0)
-						fY += diff.fY > 95 ? 95 : diff.fY;
+					if (diff.fZ >= 0)
+						fX += diff.fZ > 95 ? 95 : diff.fZ;
 					else
-						fY += diff.fY < -95 ? -95 : diff.fY;
+						fX += diff.fZ < -95 ? -95 : diff.fZ;
+
+					if (diff.fX >= 0)
+						fY += diff.fX > 95 ? 95 : diff.fX;
+					else
+						fY += diff.fX < -95 ? -95 : diff.fX;
 
 					if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Player)
 						FillRGB(fX, fY, 4, 4, 255, 0, 0, 255);
-					else if (scopeobj.R == 240 && scopeobj.B == 240 && scopeobj.G == 250) // no needed entities on the map(not important!)
+					else if (scopeobj.R == 240 && scopeobj.G == 240 && scopeobj.B == 250) // no needed entities on the map(not important!)
 						FillRGB(fX, fY, 4, 4, 0, 0, 255, 0); // alpha channel 0
 					else // Lootable objects
 						FillRGB(fX, fY, 4, 4, scopeobj.R, scopeobj.G, scopeobj.B, 255);
@@ -596,8 +635,11 @@ bool CH1Z1::WorldToScreen(const CVector3& World, CVector3& Out)
 	_tmp = GetMatrixAxis(d3Matrix, 1);
 	float y = CVector3(_tmp.x, _tmp.y, _tmp.z).Dot(World) + d3Matrix.m[1][3];
 
-	Out.fX = (this->_screenWidth / 2) * (1.0 + x / w);
-	Out.fY = (this->_screenHeight / 2) * (1.0 - y / w);
+	RPM(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenWidth)), &this->_screenWidth, sizeof(this->_screenWidth), NULL);
+	RPM(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenHeight)), &this->_screenHeight, sizeof(this->_screenHeight), NULL);
+
+	Out.fX = (_screenWidth / 2) * (1.0 + x / w);
+	Out.fY = (_screenHeight / 2) * (1.0 - y / w);
 	return true;
 }
 
@@ -659,11 +701,15 @@ float CH1Z1::CalculateEntity3DModelOffset(BYTE entityType)
 		case H1Z1Def::EntityTypes::TYPE_Zombie:
 		case H1Z1Def::EntityTypes::TYPE_Wolf:
 		case H1Z1Def::EntityTypes::TYPE_Zombie2:
-		case H1Z1Def::EntityTypes::TYPE_Player:
 			fOffset = 1.75f;
 			break;
 
+		case H1Z1Def::EntityTypes::TYPE_Player:
+			fOffset = 1.f;
+			break;
+
 		default:
+			fOffset = 0.2f;
 			break;
 	}
 	return fOffset;

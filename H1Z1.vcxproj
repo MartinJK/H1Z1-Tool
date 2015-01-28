@@ -159,8 +159,9 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include/targetver.h" />
+    <ClInclude Include="include\targetver.h" />
     <ClInclude Include="include\CH1Z1.h" />
+    <ClInclude Include="include\CItemSprite.h" />
     <ClInclude Include="include\Common.h" />
     <ClInclude Include="include\Config.h" />
     <ClInclude Include="include\D3Draw.h" />
@@ -172,11 +173,12 @@
     <ClInclude Include="vendor\supereasyjson\json.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src/main.cpp" />
+    <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\CH1Z1.cpp" />
     <ClCompile Include="src\Config.cpp" />
     <ClCompile Include="src\D3Draw.cpp" />
     <ClCompile Include="src\D3Overlay.cpp" />
+    <ClCompile Include="src\CItemSprite.cpp" />
     <ClCompile Include="vendor\supereasyjson\json.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

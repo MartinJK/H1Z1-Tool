@@ -25,6 +25,7 @@ misrepresented as being the original software.
 #include <include/main.h>
 #include <include/D3Draw.h>
 #include <include/Vector3.h>
+#include <include/CItemSprite.h>
 
 #define RPM ReadProcessMemory
 
@@ -49,11 +50,9 @@ private:
 	LPD3DXSPRITE dxSprite;
 	LPDIRECT3DTEXTURE9 dxTexture;
 
-	int16 _screenWidth = 0;
-	int16 _screenHeight = 0;
-
 	Config* _system = nullptr;
 	ConfigArray* _entityColor = nullptr;
+	ConfigArray* _entity3DDisplay = nullptr;
 	LanguageConfig* _lang = nullptr;
 
 	struct Configuration {
@@ -65,11 +64,13 @@ private:
 		bool __COMPASS = false;
 	} _config;
 
+	CItemSprite*	_itemSprites[255];
+
 public:
 	CH1Z1(HANDLE proc);
 	~CH1Z1();
 
-	CH1Z1*	GetInstance(HANDLE hProc = NULL) { if(_instance == nullptr) { _instance = new CH1Z1(hProc); } return _instance; };
+	static CH1Z1*	GetInstance(HANDLE hProc = NULL) { if(_instance == nullptr) { _instance = new CH1Z1(hProc); } return _instance; };
 
 	void ParseEntities();
 	void Process();
@@ -84,6 +85,9 @@ public:
 
 	std::tuple<BYTE, BYTE, BYTE, BYTE> GetEntityColor(BYTE entityType);
 	float CalculateEntity3DModelOffset(BYTE entityType);
+
+	int16 _screenWidth = 0;
+	int16 _screenHeight = 0;
 
 	RECT GetScreenDimensions()
 	{
