@@ -3,5 +3,6 @@
 "sys.debug_items":false,
 "sys.attack_alert":true,
 "sys.attack_player_alert":true,
-"sys.3d_display":true
+"sys.3d_display":true,
+"sys.compass":true
 }

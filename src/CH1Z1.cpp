@@ -41,20 +41,20 @@ CH1Z1::CH1Z1(HANDLE proc) :
 		return;
 
 	// Create basic ptr's
-	ReadH1Z1(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CGame), &this->CGame, sizeof(DWORD64), NULL);
-	ReadH1Z1(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CGraphic), &this->CGraphics, sizeof(DWORD64), NULL);
-	ReadH1Z1(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CController), &this->CController, sizeof(DWORD64), NULL);
+	RPM(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CGame), &this->CGame, sizeof(DWORD64), NULL);
+	RPM(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CGraphic), &this->CGraphics, sizeof(DWORD64), NULL);
+	RPM(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CController), &this->CController, sizeof(DWORD64), NULL);
 
-	ReadH1Z1(this->hH1Z1, (void*)(CGame + STATIC_CAST(H1Z1_DEF_LATEST::LocalPlayerOffset)), &this->LocalPlayer, sizeof(DWORD64), NULL);
-	ReadH1Z1(this->hH1Z1, (void*)(CPlayer + STATIC_CAST(H1Z1_DEF_LATEST::CPlayerOffset_Position)), &this->vecPlayerPos, sizeof(CVector3), NULL);
+	RPM(this->hH1Z1, (void*)(CGame + STATIC_CAST(H1Z1_DEF_LATEST::LocalPlayerOffset)), &this->LocalPlayer, sizeof(DWORD64), NULL);
+	RPM(this->hH1Z1, (void*)(CPlayer + STATIC_CAST(H1Z1_DEF_LATEST::CPlayerOffset_Position)), &this->vecPlayerPos, sizeof(CVector3), NULL);
 
 	// Grab health
-	ReadH1Z1(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::LocalPlayerInfo), &this->LocalPlayerInfo, sizeof(DWORD64), NULL);
+	RPM(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::LocalPlayerInfo), &this->LocalPlayerInfo, sizeof(DWORD64), NULL);
 
 #if 0 // EXPERIMENTAL HEALTH TEST
 	DWORD_PTR health;
-	ReadH1Z1(this->hH1Z1, (void*)(this->LocalPlayerInfo + 0xB8), &this->LocalPlayerInfo, sizeof(DWORD64), NULL);
-	ReadH1Z1(this->hH1Z1, (void*)(this->LocalPlayerInfo + 0xF0), &health, sizeof(DWORD64), NULL); // health table
+	RPM(this->hH1Z1, (void*)(this->LocalPlayerInfo + 0xB8), &this->LocalPlayerInfo, sizeof(DWORD64), NULL);
+	RPM(this->hH1Z1, (void*)(this->LocalPlayerInfo + 0xF0), &health, sizeof(DWORD64), NULL); // health table
 #endif
 
 	// Create player heading line
@@ -82,8 +82,8 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	D3DXCreateTextureFromFile(p_Device, loc.c_str(), &dxTexture);
 
 	// Read game screenwidth/height
-	ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenWidth)), &this->_screenWidth, sizeof(this->_screenWidth), NULL);
-	ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenHeight)), &this->_screenHeight, sizeof(this->_screenHeight), NULL);
+	RPM(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenWidth)), &this->_screenWidth, sizeof(this->_screenWidth), NULL);
+	RPM(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenHeight)), &this->_screenHeight, sizeof(this->_screenHeight), NULL);
 
 	// Read configuration
 	this->_config.__DEBUG_ITEMS = this->_system->GetBoolean("sys.debug_items");
@@ -91,7 +91,7 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	this->_config.__ATTACK_ALERT = this->_system->GetBoolean("sys.attack_alert");
 	this->_config.__ATTACK_NEAR_PLAYER_ALERT = this->_system->GetBoolean("sys.attack_player_alert");
 	this->_config.__MINIMAP = this->_system->GetBoolean("sys.minimap");
-
+	this->_config.__COMPASS = this->_system->GetBoolean("sys.compass");
 }
 
 CH1Z1::~CH1Z1()
@@ -125,7 +125,7 @@ void CH1Z1::ParseEntities()
 	int warningOffset = 15;
 
 	DWORD entityCount;
-	ReadH1Z1(this->hH1Z1, (void*)(this->CGame + STATIC_CAST(H1Z1_DEF_LATEST::EntityPoolCount)), &entityCount, sizeof(DWORD), NULL);
+	RPM(this->hH1Z1, (void*)(this->CGame + STATIC_CAST(H1Z1_DEF_LATEST::EntityPoolCount)), &entityCount, sizeof(DWORD), NULL);
 
 	// Set the current object to localplayer so we parse every entity
 	DWORD_PTR _obj = this->LocalPlayer;
@@ -135,15 +135,15 @@ void CH1Z1::ParseEntities()
 	for (uint16 entity = 0; entity < entityCount-1; entity++)
 	{
 		// Read entity from memory
-		ReadH1Z1(this->hH1Z1, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::EntityTableOffset)), &_obj, sizeof(DWORD64), NULL);
+		RPM(this->hH1Z1, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::EntityTableOffset)), &_obj, sizeof(DWORD64), NULL);
 
 		// Generate new entity/object for this iteration/loop
 		H1Z1Def::CObject scopeobj;
 
-		ReadH1Z1(this->hH1Z1, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Name)), &_namePtr, sizeof(DWORD64), NULL);
-		ReadH1Z1(this->hH1Z1, (void*)(_namePtr), &scopeobj._name, sizeof(scopeobj._name), NULL);
-		ReadH1Z1(this->hH1Z1, (void*)(_obj + +STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Position)), &scopeobj._position, sizeof(CVector3), NULL);
-		ReadH1Z1(this->hH1Z1, (void*)(_obj + +STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Type)), &scopeobj._type, sizeof(int32), NULL);
+		RPM(this->hH1Z1, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Name)), &_namePtr, sizeof(DWORD64), NULL);
+		RPM(this->hH1Z1, (void*)(_namePtr), &scopeobj._name, sizeof(scopeobj._name), NULL);
+		RPM(this->hH1Z1, (void*)(_obj + +STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Position)), &scopeobj._position, sizeof(CVector3), NULL);
+		RPM(this->hH1Z1, (void*)(_obj + +STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Type)), &scopeobj._type, sizeof(int32), NULL);
 
 		// Get the entity color
 		auto color = this->GetEntityColor(scopeobj._type);
@@ -181,7 +181,7 @@ void CH1Z1::ParseEntities()
 				{
 					if (fDistance < 25.f)
 					{
-						RECT desktop = this->GetDesktop();
+						RECT desktop = this->GetScreenDimensions();
 
 						char szMessage[128];
 						sprintf_s(szMessage, ">> There\'s a %s close to you <<", scopeobj._name);
@@ -213,7 +213,7 @@ void CH1Z1::ParseEntities()
 					{
 						_IGNORE_PLAYERS
 						{
-							RECT desktop = this->GetDesktop();
+							RECT desktop = this->GetScreenDimensions();
 
 							char szMessage[128];
 							sprintf_s(szMessage, ">> Player %s is close to you <<", scopeobj._name);
@@ -248,7 +248,7 @@ void CH1Z1::ParseEntities()
 					&& !scopeobj._isPlayer)
 				{
 					// Grab the original position
-					ReadH1Z1(this->hH1Z1, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::CEntityObjectOffset_Position)), &scopeobj._objectPosition, sizeof(CVector3), NULL);
+					RPM(this->hH1Z1, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::CEntityObjectOffset_Position)), &scopeobj._objectPosition, sizeof(CVector3), NULL);
 					fDistance = (this->vecPlayerPos - scopeobj._objectPosition).Length();
 
 					scopeobj._isObject = true;
@@ -342,7 +342,7 @@ void CH1Z1::ParseEntities()
 			if (this->_config.__MINIMAP)
 			{
 				// Draw to minimap
-				RECT desktop = GetDesktop();
+				RECT desktop = GetScreenDimensions();
 
 				auto fWidth = 200;
 				auto fHeight = 200;
@@ -393,7 +393,7 @@ void CH1Z1::Process()
 	float fHeading = 0.f;
 
 	{
-		ReadH1Z1(this->hH1Z1, (void*)(this->LocalPlayer + STATIC_CAST(H1Z1_DEF_LATEST::CPlayerOffset_Position)), &this->vecPlayerPos, sizeof(CVector3), NULL);
+		RPM(this->hH1Z1, (void*)(this->LocalPlayer + STATIC_CAST(H1Z1_DEF_LATEST::CPlayerOffset_Position)), &this->vecPlayerPos, sizeof(CVector3), NULL);
 
 		char szString[512] = { 0 };
 		sprintf_s(szString, "World Position: %.2f, %.2f, %.2f", this->vecPlayerPos.fX, this->vecPlayerPos.fY, this->vecPlayerPos.fZ);
@@ -401,7 +401,7 @@ void CH1Z1::Process()
 	}
 
 	{
-		ReadH1Z1(this->hH1Z1, (void*)(this->LocalPlayer + STATIC_CAST(H1Z1_DEF_LATEST::CPlayerOffset_Heading)), &fHeading, sizeof(float), NULL);
+		RPM(this->hH1Z1, (void*)(this->LocalPlayer + STATIC_CAST(H1Z1_DEF_LATEST::CPlayerOffset_Heading)), &fHeading, sizeof(float), NULL);
 		
 		auto compass = this->CalculateWorldCompassHeading(fHeading);
 		char szString[126] = { 0 };
@@ -421,15 +421,15 @@ void CH1Z1::Process()
 	}
 
 	{
-		ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenWidth)), &this->_screenWidth, sizeof(this->_screenWidth), NULL);
-		ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenHeight)), &this->_screenHeight, sizeof(this->_screenHeight), NULL);
+		RPM(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenWidth)), &this->_screenWidth, sizeof(this->_screenWidth), NULL);
+		RPM(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenHeight)), &this->_screenHeight, sizeof(this->_screenHeight), NULL);
 	}
 
 	
 	if (this->_config.__MINIMAP)
 	{
 		// Minimap
-		RECT desktop = this->GetDesktop();
+		RECT desktop = this->GetScreenDimensions();
 
 		auto fWidth = 200;
 		auto fHeight = 200;
@@ -458,9 +458,12 @@ void CH1Z1::Process()
 		DrawString("W", fX + fWidth + 5, fY - (fHeight / 2) - 5, 240, 240, 250, pFontSmall);
 		DrawString("S", fX + (fWidth / 2) - 5, fY + 5, 240, 240, 250, pFontSmall);
 
-		char compass[8];
-		sprintf(compass, "%s", this->CalculateWorldCompassHeading(fHeading).c_str());
-		DrawString(compass, 20, _screenHeight-50, 255, 255, 255, pFontMiddle, 120);
+		if (this->_config.__COMPASS)
+		{
+			char compass[8];
+			sprintf(compass, "%s", this->CalculateWorldCompassHeading(fHeading).c_str());
+			DrawString(compass, 20, _screenHeight - 50, 255, 255, 255, pFontMiddle, 120);
+		}
 
 		// Draw player heading line
 #pragma message("FIX CONVERSION!")
@@ -530,8 +533,8 @@ char* CH1Z1::GetEntityName(DWORD_PTR ptr)
 	static char itemName[64];
 
 	DWORD64 ItemNamePtr;
-	ReadH1Z1(this->hH1Z1, (void*)(ptr + STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Name)), &ItemNamePtr, sizeof(DWORD64), NULL);
-	ReadH1Z1(this->hH1Z1, (void*)(ItemNamePtr), &itemName, sizeof(itemName), NULL);
+	RPM(this->hH1Z1, (void*)(ptr + STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Name)), &ItemNamePtr, sizeof(DWORD64), NULL);
+	RPM(this->hH1Z1, (void*)(ItemNamePtr), &itemName, sizeof(itemName), NULL);
 
 	return itemName;
 }
@@ -565,13 +568,13 @@ bool CH1Z1::WorldToScreen(const CVector3& World, CVector3& Out)
 	DWORD_PTR CCamera;
 	DWORD_PTR CCameraMatrix;
 
-	ReadH1Z1(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_Camera)), &CCamera, sizeof(DWORD64), NULL);
-	ReadH1Z1(this->hH1Z1, (void*)(CCamera + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_Camera__Matrix)), &CCameraMatrix, sizeof(DWORD64), NULL);
+	RPM(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_Camera)), &CCamera, sizeof(DWORD64), NULL);
+	RPM(this->hH1Z1, (void*)(CCamera + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_Camera__Matrix)), &CCameraMatrix, sizeof(DWORD64), NULL);
 
 	CCameraMatrix += 0x10;
 
 	D3DXMATRIX d3Matrix;
-	ReadH1Z1(this->hH1Z1, (void*)(CCameraMatrix + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_D3DXMATRIX)), &d3Matrix, sizeof(D3DXMATRIX), NULL);
+	RPM(this->hH1Z1, (void*)(CCameraMatrix + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_D3DXMATRIX)), &d3Matrix, sizeof(D3DXMATRIX), NULL);
 
 	D3DXMatrixTranspose(&d3Matrix, &d3Matrix);
 
@@ -616,8 +619,8 @@ std::tuple<BYTE, BYTE, BYTE, BYTE> CH1Z1::GetEntityColor(BYTE entityType)
 	return std::make_tuple(
 		255, 
 		this->_entityColor->Object()[entityType]["R"].ToInt(),
-		this->_entityColor->Object()[entityType]["B"].ToInt(),
-		this->_entityColor->Object()[entityType]["G"].ToInt());
+		this->_entityColor->Object()[entityType]["G"].ToInt(),
+		this->_entityColor->Object()[entityType]["B"].ToInt());
 #if 0 
 	switch ((H1Z1Def::EntityTypes)entityType)
 	{

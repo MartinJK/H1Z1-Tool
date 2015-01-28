@@ -26,6 +26,8 @@ misrepresented as being the original software.
 #include <include/D3Draw.h>
 #include <include/Vector3.h>
 
+#define RPM ReadProcessMemory
+
 class CH1Z1
 {
 private:
@@ -60,6 +62,7 @@ private:
 		bool __3D_ENTITY_DISPLAY = false;
 		bool __MINIMAP = false;
 		bool __ATTACK_NEAR_PLAYER_ALERT = false;
+		bool __COMPASS = false;
 	} _config;
 
 public:
@@ -82,14 +85,14 @@ public:
 	std::tuple<BYTE, BYTE, BYTE, BYTE> GetEntityColor(BYTE entityType);
 	float CalculateEntity3DModelOffset(BYTE entityType);
 
-
-#define ReadH1Z1 ReadProcessMemory
-
-	RECT GetDesktop()
+	RECT GetScreenDimensions()
 	{
-		RECT desktop;
-		const HWND hDesktop = GetDesktopWindow();
-		GetWindowRect(hDesktop, &desktop);
-		return desktop;
+		RECT screen;
+		//const HWND hDesktop = GetDesktopWindow();
+		//GetWindowRect(hDesktop, &desktop);
+		screen.right = this->_screenWidth;
+		screen.bottom = this->_screenHeight;
+
+		return screen;
 	}
 };
