@@ -46,8 +46,9 @@ void IConfig::SaveConfig()
 	}
 }
 
-json::Object Config::Parse(const std::string& file)
+json::Object Config::Parse(std::string& file)
 {
+redo:
 	std::ifstream t(std::string(GetWorkingDirectory() + file).c_str());
 
 	if (t.fail())
@@ -67,15 +68,8 @@ json::Object Config::Parse(const std::string& file)
 		return json::Object();
 	else if (value.GetType() != json::ValueType::ObjectVal)
 	{
-		FILE * _file = fopen(std::string(GetWorkingDirectory() + file + ".default").c_str(), "w");
-		if (_file)
-		{
-			fwrite("https://github.com/MartinJK/H1Z1Tool/data/system.json.default", strlen("https://github.com/MartinJK/H1Z1Tool/data/system.json.default"), sizeof(char), _file);
-
-			fclose(_file);
-		}
-
-		delete _file;
+		file = std::string(GetWorkingDirectory() + file + ".default");
+		goto redo;
 	}
 	else
 	{
@@ -85,8 +79,9 @@ json::Object Config::Parse(const std::string& file)
 	return json::Object();
 }
 
-json::Array ConfigArray::Parse(const std::string& file)
+json::Array ConfigArray::Parse(std::string& file)
 {
+redo:
 	std::ifstream t(std::string(GetWorkingDirectory() + file).c_str());
 
 	if (t.fail())
@@ -106,15 +101,8 @@ json::Array ConfigArray::Parse(const std::string& file)
 		return json::Array();
 	else if (value.GetType() != json::ValueType::ArrayVal)
 	{
-		FILE * _file = fopen(std::string(GetWorkingDirectory() + file + ".default").c_str(), "w");
-		if (_file)
-		{
-			fwrite("https://github.com/MartinJK/H1Z1Tool/data/entity_color.json.default", strlen("https://github.com/MartinJK/H1Z1Tool/data/entity_color.json.default"), sizeof(char), _file);
-
-			fclose(_file);
-		}
-
-		delete _file;
+		file = std::string(GetWorkingDirectory() + file + ".default");
+		goto redo;
 	}
 	else
 	{
@@ -124,8 +112,9 @@ json::Array ConfigArray::Parse(const std::string& file)
 	return json::Array();
 }
 
-json::Object LanguageConfig::Parse(const std::string& file)
+json::Object LanguageConfig::Parse(std::string& file)
 {
+redo:
 	std::string f(std::string(GetWorkingDirectory() + "\\data\\localization\\" + file + ".language.json").c_str());
 	std::ifstream t(f);
 
@@ -145,7 +134,10 @@ json::Object LanguageConfig::Parse(const std::string& file)
 	if (value.GetType() == json::ValueType::NULLVal)
 		return json::Object();
 	else if (value.GetType() != json::ValueType::ObjectVal)
-		return json::Object();
+	{
+		file = std::string(GetWorkingDirectory() + file + ".default");
+		goto redo;
+	}
 	else
 	{
 		auto object = value.ToObject();
