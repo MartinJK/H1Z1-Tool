@@ -18,7 +18,6 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 \*****************************************************************************/
-#pragma once
 #include <include/CItemSprite.h>
 #include <include/CH1Z1.h>
 
@@ -47,22 +46,19 @@ CItemSprite::CItemSprite(const std::string& itemName)
 
 CItemSprite::~CItemSprite()
 {
-
+	this->dxSprite->Release();
+	this->dxTexture->Release();
 }
 
 bool CItemSprite::SpriteWorldToScreen(CVector3& vecIn, CVector3& vecOut)
 {
-	CVector3 _vecOut;
-	bool result = CH1Z1::GetInstance()->WorldToScreen(vecIn, _vecOut);
-	vecOut = _vecOut;
-	return result;
+	return CH1Z1::GetInstance()->WorldToScreen(vecIn, vecOut);
 }
 
 float CItemSprite::CalculateDistanceSize(float _fDistance)
 {
 	auto distance = 10 / _fDistance;
 
-	// Min size
 	if (distance < 0.35f)
 		distance = 0.35f;
 	
@@ -82,7 +78,7 @@ void CItemSprite::Transform(CVector3& _vecWorldPosition, CVector3& _vecPlayerPos
 
 	D3DXMATRIX mat;
 
-	auto __vecScreenPosition = CalculateDistanceSize((_vecWorldPosition - _vecPlayerPosition).Length());
+	auto __vecScreenPosition = this->CalculateDistanceSize((_vecWorldPosition - _vecPlayerPosition).Length());
 	D3DXVECTOR2 scaling(__vecScreenPosition, __vecScreenPosition);
 	D3DXMatrixTransformation2D(&mat, NULL, 0.0, &scaling, &spriteCentre, 0.f, &screenPosition);
 

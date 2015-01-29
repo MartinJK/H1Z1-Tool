@@ -46,9 +46,8 @@ void IConfig::SaveConfig()
 	}
 }
 
-json::Object Config::Parse(std::string& file)
+json::Object Config::Parse(const std::string& file)
 {
-redo:
 	std::ifstream t(std::string(GetWorkingDirectory() + file).c_str());
 
 	if (t.fail())
@@ -64,24 +63,21 @@ redo:
 
 	auto value = json::Deserialize(str);
 
-	if (value.GetType() == json::ValueType::NULLVal)
-		return json::Object();
-	else if (value.GetType() != json::ValueType::ObjectVal)
+	if (value.GetType() == json::ValueType::NULLVal
+		|| value.GetType() != json::ValueType::ObjectVal)
 	{
-		file = std::string(GetWorkingDirectory() + file + ".default");
-		goto redo;
+		// Check if we're already parsing the .default file(so we won't parse multiple times)
+		if (file.find(".default") != std::string::npos)
+			return json::Object();
+
+		return this->Parse(GetWorkingDirectory() + file + ".default");
 	}
 	else
-	{
-		auto object = value.ToObject();
-		return object;
-	}
-	return json::Object();
+		return value.ToObject();
 }
 
-json::Array ConfigArray::Parse(std::string& file)
+json::Array ConfigArray::Parse(const std::string& file)
 {
-redo:
 	std::ifstream t(std::string(GetWorkingDirectory() + file).c_str());
 
 	if (t.fail())
@@ -95,26 +91,23 @@ redo:
 
 	str.assign((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 
-	json::Value value = json::Deserialize(str);
+	auto value = json::Deserialize(str);
 
-	if (value.GetType() == json::ValueType::NULLVal)
-		return json::Array();
-	else if (value.GetType() != json::ValueType::ArrayVal)
+	if (value.GetType() == json::ValueType::NULLVal
+		|| value.GetType() != json::ValueType::ObjectVal)
 	{
-		file = std::string(GetWorkingDirectory() + file + ".default");
-		goto redo;
+		// Check if we're already parsing the .default file(so we won't parse multiple times)
+		if (file.find(".default") != std::string::npos)
+			return json::Array();
+
+		return this->Parse(GetWorkingDirectory() + file + ".default");
 	}
 	else
-	{
-		auto array = value.ToArray();
-		return array;
-	}
-	return json::Array();
+		return value.ToArray();
 }
 
-json::Object LanguageConfig::Parse(std::string& file)
+json::Object LanguageConfig::Parse(const std::string& file)
 {
-redo:
 	std::string f(std::string(GetWorkingDirectory() + "\\data\\localization\\" + file + ".language.json").c_str());
 	std::ifstream t(f);
 
@@ -131,17 +124,15 @@ redo:
 
 	auto value = json::Deserialize(str);
 
-	if (value.GetType() == json::ValueType::NULLVal)
-		return json::Object();
-	else if (value.GetType() != json::ValueType::ObjectVal)
+	if (value.GetType() == json::ValueType::NULLVal
+		|| value.GetType() != json::ValueType::ObjectVal)
 	{
-		file = std::string(GetWorkingDirectory() + file + ".default");
-		goto redo;
+		// Check if we're already parsing the .default file(so we won't parse multiple times)
+		if (file.find(".default") != std::string::npos)
+			return json::Object();
+
+		return this->Parse(GetWorkingDirectory() + file + ".default");
 	}
 	else
-	{
-		auto object = value.ToObject();
-		return object;
-	}
-	return json::Object();
+		return value.ToObject();
 }

@@ -29,8 +29,6 @@ misrepresented as being the original software.
 class CItemSprite
 {
 private:
-	std::string				strItemName = "entity.png";
-	float					fDistance = 0.f;
 	bool					bDisplay = false;
 	LPD3DXSPRITE			dxSprite;
 	LPDIRECT3DTEXTURE9		dxTexture;
@@ -44,6 +42,5 @@ public:
 	bool SpriteWorldToScreen(CVector3& vecIn, CVector3& vecOut);
 	float CalculateDistanceSize(float _fDistance);
 
-	void SetType(BYTE EntityType);
 	void Draw( CVector3& vecWorldPosition, CVector3& vecPlayerPosition);
 };

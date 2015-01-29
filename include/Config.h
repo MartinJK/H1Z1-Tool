@@ -123,16 +123,16 @@ public:
 	Config() : IConfig() { };
 	Config(const std::string& file) : IConfig(file) { this->_ref = this->Parse(std::string(file)); };
 
-	json::Object Parse(std::string& file);
+	json::Object Parse(const std::string& file);
 };
 
 class ConfigArray : public IConfigArray
 {
 public:
 	ConfigArray() : IConfigArray() { };
-	ConfigArray(const std::string& file) : IConfigArray(file) { this->_ref = this->Parse(std::string(file)); };
+	ConfigArray(const std::string& file) : IConfigArray(file) { this->_ref = this->Parse(file); };
 
-	json::Array Parse(std::string& file);
+	json::Array Parse(const std::string& file);
 };
 
 class LanguageConfig : public IConfig
@@ -141,9 +141,9 @@ public:
 	std::string _lang = "en";
 
 	LanguageConfig() : IConfig() { };
-	LanguageConfig(const std::string& file) : IConfig(file) { this->_ref = this->Parse(std::string(file) /*const_cast<std::String&>(file)*/); };
+	LanguageConfig(const std::string& file) : IConfig(file) { this->_ref = this->Parse(file); };
 
-	json::Object Parse(std::string& file);
+	json::Object Parse(const std::string& file);
 	virtual void SaveConfig() override
 	{
 		; // override so we cannot save a language file(would be corrupted)

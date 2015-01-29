@@ -161,7 +161,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				exit(0);
 			}
 
-			std::this_thread::sleep_for(50ms); // 100ms? performance?
+			std::this_thread::sleep_for(/*VS2013 FIX*/std::chrono::milliseconds(50ms)); // 100ms? performance?
 		}
 	});
 	td.detach();

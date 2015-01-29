@@ -47,30 +47,22 @@ CH1Z1::CH1Z1(HANDLE proc) :
 	RPM(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CGame), &this->CGame, sizeof(DWORD64), NULL);
 	RPM(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CGraphic), &this->CGraphics, sizeof(DWORD64), NULL);
 	RPM(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::CController), &this->CController, sizeof(DWORD64), NULL);
+	RPM(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::LocalPlayerInfo), &this->LocalPlayerInfo, sizeof(DWORD64), NULL);
 
 	RPM(this->hH1Z1, (void*)(CGame + STATIC_CAST(H1Z1_DEF_LATEST::LocalPlayerOffset)), &this->LocalPlayer, sizeof(DWORD64), NULL);
 	RPM(this->hH1Z1, (void*)(CPlayer + STATIC_CAST(H1Z1_DEF_LATEST::CPlayerOffset_Position)), &this->vecPlayerPos, sizeof(CVector3), NULL);
-
-	// Grab health
-	RPM(this->hH1Z1, (void*)(H1Z1_DEF_LATEST::LocalPlayerInfo), &this->LocalPlayerInfo, sizeof(DWORD64), NULL);
-
-#if 0 // EXPERIMENTAL HEALTH TEST
-	DWORD_PTR health;
-	RPM(this->hH1Z1, (void*)(this->LocalPlayerInfo + 0xB8), &this->LocalPlayerInfo, sizeof(DWORD64), NULL);
-	RPM(this->hH1Z1, (void*)(this->LocalPlayerInfo + 0xF0), &health, sizeof(DWORD64), NULL); // health table
-#endif
 
 	// Create player heading line
 	D3DXCreateLine(p_Device, &this->dxLine);
 	this->dxLine->SetWidth(2);
 	this->dxLine->SetPattern(0xFFFFFF);
+
+	// Create fullmap sprite
 	D3DXCreateSprite(p_Device, &dxSprite);
 
-	// Load & generate map texture
+	// Grab working directory
 	wchar_t szExePath[MAX_PATH] = { 0 };
 	GetModuleFileNameW(GetModuleHandle(NULL), szExePath, MAX_PATH);
-
-	// Fix path in string
 	for (size_t i = wcslen(szExePath); i > 0; --i)
 	{
 		if (szExePath[i] == L'\\')
@@ -80,6 +72,7 @@ CH1Z1::CH1Z1(HANDLE proc) :
 		}
 	}
 
+	// Load & generate map texture
 	std::wstring loc = szExePath;
 	loc.append(L"map.png");
 	D3DXCreateTextureFromFile(p_Device, loc.c_str(), &dxTexture);
@@ -138,14 +131,17 @@ void CH1Z1::ParseEntities()
 	DWORD_PTR _obj = this->LocalPlayer;
 	DWORD_PTR _namePtr;
 
+	// Generate entity/object for iteration/loop
+	static H1Z1Def::CObject scopeobj;
+
 	// Now parse all
-	for (uint16 entity = 0; entity < entityCount-1; entity++)
+	for (uint8 entity = 0; entity < entityCount-1; entity++)
 	{
+		// Reset scopeobj
+		scopeobj = H1Z1Def::CObject();
+
 		// Read entity from memory
 		RPM(this->hH1Z1, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::EntityTableOffset)), &_obj, sizeof(DWORD64), NULL);
-
-		// Generate new entity/object for this iteration/loop
-		H1Z1Def::CObject scopeobj;
 
 		RPM(this->hH1Z1, (void*)(_obj + STATIC_CAST(H1Z1_DEF_LATEST::CEntityOffset_Name)), &_namePtr, sizeof(DWORD64), NULL);
 		RPM(this->hH1Z1, (void*)(_namePtr), &scopeobj._name, sizeof(scopeobj._name), NULL);
@@ -169,33 +165,31 @@ void CH1Z1::ParseEntities()
 			|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_AggressiveItems
 			|| scopeobj._type == 55 /*unkown obj*/
 			|| scopeobj._type == 44 /*wood arrow*/
-			|| scopeobj._type == 79 /*designed placed door*/)
+			|| scopeobj._type == 79 /*designer placed door*/)
 			continue;
 
 		// Check if the entity type is in a valid range
 		if (scopeobj._type < static_cast<int32>(H1Z1_DEF_LATEST::MAX_ENTITY_TYPE) && scopeobj._type >= 0)
 		{
-			char szString[256];
-
+			static char szString[256] = { 0 };
 			float fDistance = (vecPlayerPos - scopeobj._position).Length();
 
 			// Do not draw zombies to the entity list, just add a warning if they're close!
-			if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie
-				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Wolf
-				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Zombie2
-				|| scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Bear)
+			if (scopeobj._type == static_cast<int32>(H1Z1Def::EntityTypes::TYPE_Zombie)
+				|| scopeobj._type == static_cast<int32>(H1Z1Def::EntityTypes::TYPE_Wolf)
+				|| scopeobj._type == static_cast<int32>(H1Z1Def::EntityTypes::TYPE_Zombie2)
+				|| scopeobj._type == static_cast<int32>(H1Z1Def::EntityTypes::TYPE_Bear)/* is this a badass?*/)
 			{
 				if (this->_config.__ATTACK_ALERT)
 				{
 					if (fDistance < 25.f)
 					{
-						RECT desktop = this->GetScreenDimensions();
+						RECT screen = this->GetScreenDimensions();
 
 						char szMessage[128];
 						sprintf_s(szMessage, ">> There\'s a %s close to you <<", scopeobj._name);
 
-						DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 230, 230, 250, pFontSmall);
-
+						DrawString(szMessage, screen.right - (this->_screenWidth / 2) - 150, warningOffset, 230, 230, 250, pFontSmall);
 						warningOffset += 20;
 
 						// Draw the zombie in 3D so the player will see him
@@ -205,7 +199,6 @@ void CH1Z1::ParseEntities()
 						if (bResult)
 						{
 							sprintf_s(szString, ">> -%s- <<", scopeobj._name);
-
 							DrawString(szString, _vecScreen.fX, _vecScreen.fY, 255, 50, 50, pFontSmall);
 						}
 					}
@@ -215,19 +208,18 @@ void CH1Z1::ParseEntities()
 
 			if (this->_config.__ATTACK_NEAR_PLAYER_ALERT)
 			{
-				if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Player)
+				if (scopeobj._type == static_cast<int32>(H1Z1Def::EntityTypes::TYPE_Player))
 				{
 					if (fDistance < 80.f)
 					{
 						_IGNORE_PLAYERS
 						{
-							RECT desktop = this->GetScreenDimensions();
+							RECT screen = this->GetScreenDimensions();
 
 							char szMessage[128];
 							sprintf_s(szMessage, ">> Player %s is close to you <<", scopeobj._name);
 
-							DrawString(szMessage, desktop.right - (this->_screenWidth / 2) - 150, warningOffset, 230, 230, 250, pFontSmall);
-
+							DrawString(szMessage, screen.right - (this->_screenWidth / 2) - 150, warningOffset, 230, 230, 250, pFontSmall);
 							warningOffset += 20;
 
 							// Draw the zombie in 3D so the player will see him
@@ -237,7 +229,6 @@ void CH1Z1::ParseEntities()
 							if (bResult)
 							{
 								sprintf_s(szString, ">> %s <<", scopeobj._name);
-
 								DrawString(szString, _vecScreen.fX, _vecScreen.fY, 255, 50, 50, pFontSmall);
 							}
 						}
@@ -245,7 +236,7 @@ void CH1Z1::ParseEntities()
 				}
 			}
 
-			// Sort out types
+			// Sort out types(move for now to own scope)
 			{
 				if (scopeobj._type == (int32)H1Z1Def::EntityTypes::TYPE_Player)
 					scopeobj._isPlayer = true;
@@ -279,7 +270,10 @@ void CH1Z1::ParseEntities()
 						scopeobj._objectPosition.fZ,
 						fDistance);
 
-					DrawString(szString, 915, objectOffset, 240, 240, 250, pFontSmaller);
+					// Max items
+					if(objectOffset < this->_screenHeight)
+						DrawString(szString, 915, objectOffset, 240, 240, 250, pFontSmaller);
+
 					objectOffset += 15;
 				}
 
@@ -292,7 +286,10 @@ void CH1Z1::ParseEntities()
 						scopeobj._position.fZ,
 						fDistance);
 
-					DrawString(szString, 515, playerOffset, 240, 240, 250, pFontSmaller);
+					// Max items
+					if (playerOffset < this->_screenHeight)
+						DrawString(szString, 515, playerOffset, 240, 240, 250, pFontSmaller);
+
 					playerOffset += 15;
 				}
 
@@ -306,7 +303,10 @@ void CH1Z1::ParseEntities()
 						scopeobj._position.fZ,
 						fDistance);
 
-					DrawString(szString, 15, entityOffset, 240, 240, 250, pFontSmaller);
+					// Max items
+					if (entityOffset < this->_screenHeight)
+						DrawString(szString, 15, entityOffset, 240, 240, 250, pFontSmaller);
+
 					entityOffset += 15;
 				}
 			}
@@ -314,7 +314,7 @@ void CH1Z1::ParseEntities()
 			if (this->_config.__3D_ENTITY_DISPLAY &&
 				this->_entity3DDisplay->Object()[scopeobj._type]["3DLabel"].ToBool())
 			{
-				// Check if he's a player so we draw a big text with a hint
+				// Check if entity's a player/object so we draw a big text with a hint
 				if (!scopeobj._isObject) // player & entities
 				{
 					// Draw it on the screen(World 2 Screen)
@@ -369,20 +369,21 @@ void CH1Z1::ParseEntities()
 						DrawString(szString, _vecScreen.fX, _vecScreen.fY, scopeobj.R, scopeobj.G, scopeobj.B, pFontSmaller);
 					}
 				}
+
+				if (this->_entity3DDisplay->Object()[scopeobj._type]["3DSprite"].ToBool())
+					this->_itemSprites[scopeobj._type]->Draw(scopeobj._isObject ? scopeobj._objectPosition : scopeobj._position, vecPlayerPos);
 			}
 
-			if (this->_entity3DDisplay->Object()[scopeobj._type]["3DSprite"].ToBool())
-				this->_itemSprites[scopeobj._type]->Draw(scopeobj._isObject ? scopeobj._objectPosition : scopeobj._position, vecPlayerPos);
 
 			if (this->_config.__MINIMAP)
 			{
 				// Draw to minimap
-				RECT desktop = GetScreenDimensions();
+				RECT screen = GetScreenDimensions();
 
 				auto fWidth = 200;
 				auto fHeight = 200;
-				auto fX = (desktop.right - 20 - (fWidth / 2));
-				auto fY = (desktop.bottom - 75 - (fHeight / 2));
+				auto fX = (screen.right - 20 - (fWidth / 2));
+				auto fY = (screen.bottom - 75 - (fHeight / 2));
 
 				// Check if we're a lootable thing or whatever else
 				CVector3 diff;
@@ -450,15 +451,15 @@ void CH1Z1::Process()
 
 	{
 		// Do not read the playerPos again as we've already read the position this frame
-		CVector3 PleasentValley = CVector3(0, 0, -1200);
-		
-		float fRange = (PleasentValley - this->vecPlayerPos).Length();
+		CVector3 PleasantValley(0, 0, -1200);
+		float fRange = (PleasantValley - this->vecPlayerPos).Length();
 
 		char szString[512] = { 0 };
 		sprintf_s(szString, "Distance to Pleasant Valley: %.0fm", fRange);
 		DrawString(szString, 15, 80, 240, 240, 250, pFontSmaller);
 	}
 
+	// Reload screen height & width
 	{
 		RPM(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenWidth)), &this->_screenWidth, sizeof(this->_screenWidth), NULL);
 		RPM(this->hH1Z1, (void*)(this->CGraphics + STATIC_CAST(H1Z1_DEF_LATEST::CGraphicsOffset_ScreenHeight)), &this->_screenHeight, sizeof(this->_screenHeight), NULL);
@@ -468,12 +469,12 @@ void CH1Z1::Process()
 	if (this->_config.__MINIMAP)
 	{
 		// Minimap
-		RECT desktop = this->GetScreenDimensions();
+		RECT screen = this->GetScreenDimensions();
 
 		auto fWidth = 200;
 		auto fHeight = 200;
-		auto fX = (desktop.right - 20 - fWidth);
-		auto fY = (desktop.bottom - 75);
+		auto fX = (screen.right - 20 - fWidth);
+		auto fY = (screen.bottom - 75);
 
 		// Crosshair
 		FillRGB(fX, fY - (fHeight / 2), fWidth, 1, 240, 240, 250, 255);
@@ -522,21 +523,23 @@ void CH1Z1::Process()
 
 void CH1Z1::DrawFullMap()
 {
-	RECT desktop;
-	const HWND hDesktop = GetDesktopWindow();
-	GetWindowRect(hDesktop, &desktop);
+	RECT screen = this->GetScreenDimensions();
 
 	// Draw fullscreen map
 	this->dxSprite->Begin(D3DXSPRITE_ALPHABLEND);
-	RECT rc = { (desktop.right / 4) / 2, (desktop.bottom / 4) / 2, (desktop.right / 4) * 3, (desktop.bottom / 4) * 3 };
+
+	RECT rc = { (screen.right / 4) / 2, (screen.bottom / 4) / 2, (screen.right / 4) * 3, (screen.bottom / 4) * 3 };
 	D3DXVECTOR2 spriteCentre = D3DXVECTOR2(32.0f, 32.0f);
-	D3DXVECTOR2 trans = D3DXVECTOR2((desktop.right / 2) - desktop.right / 4, (desktop.bottom / 8));
-	float rotation = 0.f;
+	D3DXVECTOR2 trans = D3DXVECTOR2((screen.right / 2) - screen.right / 4, (screen.bottom / 8));
+
+
 	D3DXMATRIX mat;
 	D3DXVECTOR2 scaling(0.4f, 0.4f);
-	D3DXMatrixTransformation2D(&mat, NULL, 0.0, &scaling, &spriteCentre, rotation, &trans);
+	D3DXMatrixTransformation2D(&mat, NULL, 0.0, &scaling, &spriteCentre, 0.f, &trans);
 	this->dxSprite->SetTransform(&mat);
+
 	this->dxSprite->Draw(this->dxTexture, NULL, NULL, NULL, 0xFFFFFFFF);
+
 	this->dxSprite->End();
 
 	/*
@@ -663,20 +666,6 @@ std::tuple<BYTE, BYTE, BYTE, BYTE> CH1Z1::GetEntityColor(BYTE entityType)
 		this->_entityColor->Object()[entityType]["R"].ToInt(),
 		this->_entityColor->Object()[entityType]["G"].ToInt(),
 		this->_entityColor->Object()[entityType]["B"].ToInt());
-#if 0 
-	switch ((H1Z1Def::EntityTypes)entityType)
-	{
-		case H1Z1Def::EntityTypes::TYPE_OffRoader:
-		case H1Z1Def::EntityTypes::TYPE_PickupTruck:
-		case H1Z1Def::EntityTypes::TYPE_PoliceCar:
-			return std::make_tuple(255, 100, 50, 255);
-
-		default:
-			return std::make_tuple(255, 240, 240, 250);
-	}
-
-	return std::make_tuple(255, 240, 240, 250);
-#endif
 }
 
 float CH1Z1::CalculateEntity3DModelOffset(BYTE entityType)
