@@ -181,6 +181,9 @@
     <ClCompile Include="src\CItemSprite.cpp" />
     <ClCompile Include="vendor\supereasyjson\json.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="Reverse Engineering.txt" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

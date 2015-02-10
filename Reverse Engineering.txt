@@ -1,0 +1,65 @@
+Main contributions made by users of http://www.unknowncheats.me/forum/h1z1/
+
+class CPlayerData
+{
+public:
+	DWORD m_dwDataID; //0x0000      4 Energy, 5 Hydration,6 Stamina,48 HP
+	DWORD m_dwDataID2; //0x0004 
+	char _0x0008[168];
+	DWORD m_dwValue; //0x00B0 
+	DWORD m_dwValue2; //0x00B4 
+	char _0x00B8[64];
+	CPlayerData* m_pNext; //0x00F8 
+	CPlayerData* m_pPrevious; //0x0100 
+
+};
+
+
+struct object_t{
+     char _0x0000[848];
+    void* next; //0x0350 
+    char _0x0358[96];
+    char* Name1; //0x03B8 
+    char _0x03C0[88];
+    char* Name2; //0x0418 
+    char _0x0420[72];
+    char* Name3; //0x0468 
+    char _0x0470[40];
+    char* Name4; //0x0498 
+    char _0x04A0[16];
+    char* Name5; //0x04B0 
+    char _0x04B8[64];
+    __int32 State; //0x04F8 
+    char _0x04FC[3300];
+    float PosX2; //0x11E0 
+    float PosY2; //0x11E4 
+    float PosZ2; //0x11E8 
+    char _0x11EC[2644];
+    float YawX; //0x1C40 
+    float YawY; //0x1C44 
+    float YawZ; //0x1C48 
+    float YawSpeed; //0x1C4C 
+    char _0x1C50[10944];
+    float standSpeed; //0x4710 
+    char _0x4714[4];
+    float forwardspeed; //0x4718 
+    float sidespeed; //0x471C 
+};
+
+
+bool bypass = 0;
+
+void  hRender( int a1, int a2  )
+{
+
+    bypass =! bypass;
+    if( bypass )  
+              Object->forwardspeed = 110.0f;           
+     else
+              Object->forwardspeed = 1.0f;
+
+pRet( a1, a2 );
+}
+
+*( QWORD *)&h1z1_device = *(QWORD*)0x143C930C0;
+    pRet = (ohRender)HookVTableFunction((PDWORD_PTR*)h1z1_device, (PBYTE)hRender, 2 );

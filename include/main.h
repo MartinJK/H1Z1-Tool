@@ -30,6 +30,11 @@ misrepresented as being the original software.
 
 // CONFIGURATION
 #define PROGRAM						"H1Z1 Tool"
+// Actually they like to mess up the classes and release internal stuff like QA builds, so if it doesn't work try:
+// H1Z1 PlayClient (QA)
+// H1Z1 PlayClient (Dev)
+// H1Z1 PlayClient (Live)
+// H1Z1 PlayClient (Testing)
 #define TARGET_EXECUTABLE_CLASS		"H1Z1 PlayClient (Live)"
 #define _ATTACK_ALERT				1
 #define _DEBUG_ITEMS				0

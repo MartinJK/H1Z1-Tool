@@ -21,12 +21,12 @@ misrepresented as being the original software.
 #pragma once
 #include <d3dx9math.h>
 
-#define H1Z1_VERSION "v0.34.1.34834"
+#define H1Z1_VERSION "v0.38.2.36206"
 /*
 "0.33.1.34511"
 */
 #define H1Z1_WINDOW "H1Z1 v" H1Z1_VERSION "  **RELEASE**"
-#define H1Z1_DEF_LATEST H1Z1Def::versions::v034134834
+#define H1Z1_DEF_LATEST H1Z1Def::versions::v038236206
 
 #define STATIC_CAST(address) static_cast<DWORD>(address)
 
@@ -35,6 +35,105 @@ namespace H1Z1Def
 	namespace versions
 	{
 #pragma message("!--> USE PATTERN - NO STATIC OFFSETS! [<include/H1Z1Def.h>]")
+		enum class v038236206 : UINT64
+		{
+			IMAGEIMAGEBASE = 0x14000000,
+			MAX_ENTITY_TYPE = 256, // BYTE
+
+			// General game structures
+			CGame = 0x142CB8928, // absolute/static
+			CGraphic = 0x142CB8688, // absolute/static
+			CController = 0x143C8B5A0, // absolute/static
+			CPhysics = 0x142CA6720, // absolute/static
+			/* CController SIG:
+			48 8B 0D ? ? ? ? 48 85 C9 74 05 E8 ? ? ? ? 48 83 C4 28 C3 90 A3 56 37 BB 50 48 89 5C 24
+			*/
+			LocalPlayerOffset = 0x11D8, // CGame + Offset
+			LocalPlayerInfo = 0x143CB2D80, // absolute/static
+			/* PlayerInfo SIG:
+			48 39 35 ? ? ? ? 75 44 8B 0D ? ? ? ? BA ? ? ? ? E8 ? ? ? ? 48 85 C0 0F 84 ? ? ? ? 48 8B C8 E8 ? ? ? ? 48 89 05 ? ? ? ? 48 85 C0 0F 84 ? ? ? ? 48 8B C8 E8 ? ? ? ?
+			*/
+
+			// Functions
+			pfnGetNumberOfBones = 0x141467230, // absolute/static
+			pfnGetBoneName = 0x141467250 , // absolute/static
+			pfnWorldToScreen = 0x14030BA60, // absolute/static
+
+			// Entities
+			EntityTableOffset = 0x350,
+			EntityPoolCount = 0x1020, // int32/BYTE
+
+			// Player
+			CPlayerOffset_Position = 0x1D0, // Vector3
+			CPlayerOffset_Heading = 0x1F0, // float
+			CPlayerOffset_Pitch = 0x1F4, // float
+			CPlayerOffset_State = 0x4F8, // BYTE 
+			CPlayerOffset_Velocity = 0x0200, // Vector3
+			CPlayerOffset_WorldState = 0x0028, // BYTE
+			CPlayerOffset_AliveState = 0x12BC, // BYTE
+
+			// Entity
+			CEntityOffset_Name = 0x3B8, // char [64]
+			CEntityOffset_Position = 0x1D0, // Vector3
+			CEntityOffset_Type = 0x500, // int32/BYTE
+			CEntityObjectOffset_Position = 0x1330, // Vector3
+
+			// Graphics
+			CGraphicsOffset_ScreenWidth = 0x28, // int32
+			CGraphicsOffset_ScreenHeight = 0x2C, // int32
+			CGraphicsOffset_Camera = 0x48, // CCamera
+			CGraphicsOffset_Camera__Matrix = 0x20, // CameraMatrix
+			CGraphicsOffset_D3DXMATRIX = 0x1A0, // D3DXMATRIX
+
+			// CController
+			CControllerOffset_Yaw = 0xE0, // float
+			CControllerOffset_Pitch = 0xE4, // floatBASE = 0x14000000,
+		};
+		enum class v035135440 : UINT64
+		{
+			IMAGEIMAGEBASE = 0x14000000,
+			MAX_ENTITY_TYPE = 256, // BYTE
+
+			// General game structures
+			CGame = 0x142CB3248, // absolute/static
+			CGraphic = 0x142CB2FA8, // absolute/static
+			CController = 0x143C85EC0, // absolute /static
+			LocalPlayerOffset = 0x11D8, // CGame + Offset
+			LocalPlayerInfo = 0x143CAD6A0, // absolute/static
+
+			// Functions
+			pfnWorldToScreen = 0x14030ACC0, // absolute
+
+			// Entities
+			EntityTableOffset = 0x350,
+			EntityPoolCount = 0x1020, // int32/BYTE
+
+			// Player
+			CPlayerOffset_Position = 0x1D0, // Vector3
+			CPlayerOffset_Heading = 0x1F0, // float
+			CPlayerOffset_Pitch = 0x1F4, // float
+			CPlayerOffset_State = 0x4F8, // BYTE 
+			CPlayerOffset_Velocity = 0x0200, // Vector3
+			CPlayerOffset_WorldState = 0x0028, // BYTE
+
+			// Entity
+			CEntityOffset_Name = 0x3B8, // char [64]
+			CEntityOffset_Position = 0x1D0, // Vector3
+			CEntityOffset_Type = 0x500, // int32/BYTE
+			CEntityObjectOffset_Position = 0x1330, // Vector3
+
+			// Graphics
+			CGraphicsOffset_ScreenWidth = 0x28, // int32
+			CGraphicsOffset_ScreenHeight = 0x2C, // int32
+			CGraphicsOffset_Camera = 0x48, // CCamera
+			CGraphicsOffset_Camera__Matrix = 0x20, // CameraMatrix
+			CGraphicsOffset_D3DXMATRIX = 0x1A0, // D3DXMATRIX
+
+			// CController
+			CControllerOffset_Yaw = 0xE0, // float
+			CControllerOffset_Pitch = 0xE4, // floatBASE = 0x14000000,
+		};
+
 		enum class v034134834 : UINT64
 		{
 			IMAGEIMAGEBASE = 0x14000000,
@@ -79,6 +178,7 @@ namespace H1Z1Def
 			CControllerOffset_Yaw = 0xE0, // float
 			CControllerOffset_Pitch = 0xE4, // floatBASE = 0x14000000,
 		};
+
 		enum class v033134511 : UINT64
 		{
 			IMAGEBASE = 0x14000000,
